@@ -14,9 +14,19 @@ class CoursesTableSeeder extends Seeder
     {
         $now = now();
 
-        $engineeringId = DB::table('departments')->where('faculty_code', 'FENG')->value('department_id');
-        $artsId = DB::table('departments')->where('faculty_code', 'FAS')->value('department_id');
-        $businessId = DB::table('departments')->where('faculty_code', 'FBM')->value('department_id');
+        // Fetch all department IDs using correct faculty codes
+        $cagId = DB::table('departments')->where('faculty_code', 'CAG')->value('department_id');
+        $casId = DB::table('departments')->where('faculty_code', 'CAS')->value('department_id');
+        $cbmaId = DB::table('departments')->where('faculty_code', 'CBMA')->value('department_id');
+        $ccsId = DB::table('departments')->where('faculty_code', 'CCS')->value('department_id');
+        $ccjeId = DB::table('departments')->where('faculty_code', 'CCJE')->value('department_id');
+        $coedId = DB::table('departments')->where('faculty_code', 'COED')->value('department_id');
+        $coeId = DB::table('departments')->where('faculty_code', 'COE')->value('department_id');
+        $cfasId = DB::table('departments')->where('faculty_code', 'CFAS')->value('department_id');
+        $chmId = DB::table('departments')->where('faculty_code', 'CHM')->value('department_id');
+        $cnasId = DB::table('departments')->where('faculty_code', 'CNAS')->value('department_id');
+        $csId = DB::table('departments')->where('faculty_code', 'CS')->value('department_id');
+        $cotId = DB::table('departments')->where('faculty_code', 'COT')->value('department_id');
 
         $courses = [
             // College of Agriculture
@@ -53,7 +63,7 @@ class CoursesTableSeeder extends Seeder
         
             // College of Business Management and Accountancy
             [
-                'course_code' => 'BSA',
+                'course_code' => 'BSAc',
                 'course_name' => 'BS in Accountancy',
                 'department_id' => $cbmaId,
                 'created_at' => $now,

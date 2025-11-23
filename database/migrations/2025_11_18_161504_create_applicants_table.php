@@ -19,13 +19,13 @@ return new class extends Migration
                 ->constrained('campuses', 'campus_id')
                 ->cascadeOnUpdate()
                 ->restrictOnDelete();
-            $table->string('first_name');
+            $table->string('first_name');   
             $table->string('middle_name')->nullable();
             $table->string('last_name');
-            $table->date('birth_date');
-            $table->string('place_of_birth');
-            $table->enum('sex', ['Male', 'Female']);
-            $table->string('civil_status');
+            $table->date('birth_date')->nullable();
+            $table->string('place_of_birth')->nullable();
+            $table->enum('sex', ['Male', 'Female'])->nullable();
+            $table->string('civil_status')->nullable();
             $table->string('email');
             $table->string('contact_number', 32)->nullable();
             $table->string('barangay')->nullable();
@@ -36,6 +36,7 @@ return new class extends Migration
             $table->string('year_graduated', 9)->nullable();
             $table->decimal('gen_average', 5, 2)->nullable();
             $table->foreignId('preferred_course_1')
+                ->nullable()
                 ->constrained('courses', 'course_id')
                 ->cascadeOnUpdate()
                 ->restrictOnDelete();
