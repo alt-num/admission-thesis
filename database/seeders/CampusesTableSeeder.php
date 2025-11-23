@@ -15,31 +15,54 @@ class CampusesTableSeeder extends Seeder
         $now = now();
 
         $campuses = [
+            // Main Campus — Borongan
             [
                 'campus_name' => 'Main Campus',
                 'campus_code' => 'MAIN',
-                'address' => 'Brgy. Maydolong, Borongan City, Eastern Samar',
+                'barangay' => 'Maydolong',
+                'city_name' => 'Borongan',
+                'city_code' => 'BOR',
+                'province' => 'Eastern Samar',
+                'full_address' => 'Brgy. Maydolong, Borongan City, Eastern Samar',
                 'created_at' => $now,
                 'updated_at' => $now,
             ],
+
+            // Guiuan Campus
             [
                 'campus_name' => 'Guiuan Campus',
                 'campus_code' => 'GUIUAN',
-                'address' => 'Brgy. Salug, Guiuan, Eastern Samar',
+                'barangay' => 'Salug',
+                'city_name' => 'Guiuan',
+                'city_code' => 'GUI',
+                'province' => 'Eastern Samar',
+                'full_address' => 'Brgy. Salug, Guiuan City, Eastern Samar',
                 'created_at' => $now,
                 'updated_at' => $now,
             ],
+
+            // Can-Avid Campus
             [
                 'campus_name' => 'Can-Avid Campus',
                 'campus_code' => 'CAN-AVID',
-                'address' => 'Brgy. 10, Can-Avid, Eastern Samar',
+                'barangay' => '10',
+                'city_name' => 'Can-Avid',
+                'city_code' => 'CAN',
+                'province' => 'Eastern Samar',
+                'full_address' => 'Brgy. 10, Can-Avid, Eastern Samar',
                 'created_at' => $now,
                 'updated_at' => $now,
             ],
+
+            // Arteche Campus
             [
                 'campus_name' => 'Arteche Campus',
                 'campus_code' => 'ARTECHE',
-                'address' => 'Brgy. Balud, Arteche, Eastern Samar',
+                'barangay' => 'Balud',
+                'city_name' => 'Arteche',
+                'city_code' => 'ART',
+                'province' => 'Eastern Samar',
+                'full_address' => 'Brgy. Balud, Arteche, Eastern Samar',
                 'created_at' => $now,
                 'updated_at' => $now,
             ],

@@ -12,7 +12,15 @@ class Campus extends Model
 
     protected $primaryKey = 'campus_id';
 
-    protected $guarded = [];
+    protected $fillable = [
+        'campus_name',
+        'campus_code',
+        'barangay',
+        'city_name',
+        'city_code',
+        'province',
+        'full_address',
+    ];
 
     public function applicants(): HasMany
     {

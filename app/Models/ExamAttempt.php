@@ -28,6 +28,11 @@ class ExamAttempt extends Model
         return $this->belongsTo(Applicant::class, 'applicant_id', 'applicant_id');
     }
 
+    public function exam(): BelongsTo
+    {
+        return $this->belongsTo(Exam::class, 'exam_id', 'exam_id');
+    }
+
     public function answers(): HasMany
     {
         return $this->hasMany(ExamAnswer::class, 'attempt_id', 'attempt_id');

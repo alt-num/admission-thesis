@@ -15,7 +15,11 @@ return new class extends Migration
             $table->id('campus_id');
             $table->string('campus_name');
             $table->string('campus_code')->unique();
-            $table->string('address');
+            $table->string('barangay')->nullable();
+            $table->string('city_name');
+            $table->string('city_code', 3);
+            $table->string('province');
+            $table->string('full_address');
             $table->timestamps();
         });
     }
