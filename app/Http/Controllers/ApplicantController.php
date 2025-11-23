@@ -16,11 +16,25 @@ class ApplicantController extends Controller
     /**
      * Display a listing of applicants (for admission users).
      */
-    public function index()
+    public function index(Request $request)
     {
+        $search = $request->query('search');
+
         $applicants = Applicant::with(['campus', 'preferredCourse1', 'preferredCourse2', 'preferredCourse3'])
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('app_ref_no', 'ilike', "%{$search}%")
+                      ->orWhere('first_name', 'ilike', "%{$search}%")
+                      ->orWhere('last_name', 'ilike', "%{$search}%")
+                      ->orWhereHas('campus', function ($campusQuery) use ($search) {
+                          $campusQuery->where('campus_name', 'ilike', "%{$search}%");
+                      })
+                      ->orWhereRaw("DATE(created_at)::text ILIKE ?", ["%{$search}%"]);
+                });
+            })
             ->latest()
-            ->paginate(15);
+            ->paginate(10)
+            ->withQueryString();
 
         return view('admission.applicants.index', compact('applicants'));
     }
@@ -90,5 +104,76 @@ class ApplicantController extends Controller
         return redirect()
             ->route('admission.applicants.index')
             ->with('success', "Applicant registered successfully! Username: {$username}, Password: {$defaultPassword}");
+    }
+
+    /**
+     * Display the specified applicant.
+     */
+    public function show(Applicant $applicant)
+    {
+        $applicant->load([
+            'campus',
+            'preferredCourse1',
+            'preferredCourse2',
+            'preferredCourse3',
+            'declaration',
+            'examAttempts.exam',
+            'courseResults.course'
+        ]);
+
+        return view('admission.applicants.show', compact('applicant'));
+    }
+
+    /**
+     * Show the form for editing the specified applicant.
+     */
+    public function edit(Applicant $applicant)
+    {
+        $applicant->load(['campus', 'preferredCourse1', 'preferredCourse2', 'preferredCourse3']);
+        $courses = Course::with('department')->orderBy('course_name')->get();
+
+        return view('admission.applicants.edit', compact('applicant', 'courses'));
+    }
+
+    /**
+     * Update the specified applicant in storage.
+     */
+    public function update(Request $request, Applicant $applicant)
+    {
+        $validated = $request->validate([
+            'first_name' => 'required|string|max:255',
+            'middle_name' => 'nullable|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'email' => 'required|email|unique:applicants,email,' . $applicant->applicant_id . ',applicant_id',
+            'contact_number' => 'nullable|string|max:32',
+            'preferred_course_1' => 'nullable|exists:courses,course_id',
+            'preferred_course_2' => 'nullable|exists:courses,course_id',
+            'preferred_course_3' => 'nullable|exists:courses,course_id',
+        ]);
+
+        $applicant->update([
+            'first_name' => $validated['first_name'],
+            'middle_name' => $validated['middle_name'] ?? null,
+            'last_name' => $validated['last_name'],
+            'email' => $validated['email'],
+            'contact_number' => $validated['contact_number'] ?? null,
+            'preferred_course_1' => $validated['preferred_course_1'] ?? null,
+            'preferred_course_2' => $validated['preferred_course_2'] ?? null,
+            'preferred_course_3' => $validated['preferred_course_3'] ?? null,
+        ]);
+
+        return redirect()
+            ->route('admission.applicants.show', $applicant)
+            ->with('success', 'Applicant updated successfully!');
+    }
+
+    /**
+     * Display the declaration for the specified applicant.
+     */
+    public function declarationViewing(Applicant $applicant)
+    {
+        $applicant->load('declaration');
+
+        return view('admission.applicants.declaration', compact('applicant'));
     }
 }

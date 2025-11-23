@@ -13,7 +13,12 @@ class Course extends Model
 
     protected $primaryKey = 'course_id';
 
-    protected $guarded = [];
+    protected $fillable = [
+        'course_code',
+        'course_name',
+        'department_id',
+        'passing_score',
+    ];
 
     public function department(): BelongsTo
     {
@@ -33,5 +38,10 @@ class Course extends Model
     public function applicantsTertiaryPreference(): HasMany
     {
         return $this->hasMany(Applicant::class, 'preferred_course_3', 'course_id');
+    }
+
+    public function courseResults(): HasMany
+    {
+        return $this->hasMany(ApplicantCourseResult::class, 'course_id', 'course_id');
     }
 }

@@ -164,7 +164,7 @@
             <!-- Info Note -->
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p class="text-sm text-blue-800">
-                    <strong>Note:</strong> A default password (APP_REF_NO) will be assigned to the applicant account. The username will be generated from the application reference number.
+                    <strong>Note:</strong> You can leave the preferred courses blank on creation. The username and password will be generated from the application reference number.
                 </p>
             </div>
 

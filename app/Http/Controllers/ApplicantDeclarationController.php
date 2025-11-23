@@ -62,4 +62,34 @@ class ApplicantDeclarationController extends Controller
     {
         //
     }
+
+    /**
+     * Save remarks for an applicant's declaration.
+     */
+    public function saveRemarks(Request $request, \App\Models\Applicant $applicant)
+    {
+        $validated = $request->validate([
+            'remarks' => 'nullable|string',
+        ]);
+
+        // Get or create the declaration record
+        $declaration = $applicant->declaration;
+
+        if (!$declaration) {
+            // Create a new declaration record if it doesn't exist
+            $declaration = ApplicantDeclaration::create([
+                'applicant_id' => $applicant->applicant_id,
+                'remarks' => $validated['remarks'] ?? null,
+            ]);
+        } else {
+            // Update only the remarks field
+            $declaration->update([
+                'remarks' => $validated['remarks'] ?? null,
+            ]);
+        }
+
+        return redirect()
+            ->route('admission.applicants.declaration', $applicant)
+            ->with('success', 'Remarks saved successfully!');
+    }
 }
