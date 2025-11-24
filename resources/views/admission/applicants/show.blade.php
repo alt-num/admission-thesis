@@ -227,6 +227,54 @@
         </div>
     @endif
 
+    <!-- Course Evaluation Results -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Course Evaluation Results</h2>
+        <div class="space-y-4">
+            @php
+                $preferredCourses = [
+                    1 => $applicant->preferredCourse1,
+                    2 => $applicant->preferredCourse2,
+                    3 => $applicant->preferredCourse3,
+                ];
+            @endphp
+            @foreach($preferredCourses as $index => $course)
+                @if($course)
+                    @php
+                        $courseResult = $applicant->courseResults->firstWhere('course_id', $course->course_id);
+                    @endphp
+                    <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-900">{{ $course->course_name }} ({{ $course->course_code }})</h3>
+                            <p class="text-xs text-gray-500 mt-1">Preferred Course {{ $index }}</p>
+                        </div>
+                        <div class="text-right">
+                            @if($courseResult)
+                                @if($courseResult->result_status === 'Pass')
+                                    <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                        Pass
+                                    </span>
+                                @else
+                                    <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                        Fail
+                                    </span>
+                                @endif
+                                <p class="text-xs text-gray-500 mt-1">Score: {{ number_format($courseResult->score_value, 2) }}%</p>
+                            @else
+                                <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                                    Not evaluated
+                                </span>
+                            @endif
+                        </div>
+                    </div>
+                @endif
+            @endforeach
+            @if(!$applicant->preferredCourse1 && !$applicant->preferredCourse2 && !$applicant->preferredCourse3)
+                <p class="text-sm text-gray-500">No preferred courses selected.</p>
+            @endif
+        </div>
+    </div>
+
     <!-- Declaration Section -->
     <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center justify-between mb-4">
@@ -244,6 +292,113 @@
             <p class="text-sm text-gray-600">Declaration submitted on {{ $applicant->declaration->certified_date ? $applicant->declaration->certified_date->format('F d, Y') : 'N/A' }}</p>
         @else
             <p class="text-sm text-gray-500">No declaration submitted yet.</p>
+        @endif
+    </div>
+
+    <!-- Exam Eligibility & Course Qualification Panel -->
+    <div class="bg-white p-6 rounded-xl shadow-md space-y-6">
+        <h2 class="text-lg font-semibold text-gray-900">Exam Eligibility & Course Qualification</h2>
+
+        @if($eligibility['total_score'] !== null)
+            <!-- Total Score -->
+            <div>
+                <h3 class="text-sm font-medium text-gray-700 mb-2">Total Score</h3>
+                <p class="text-2xl font-bold text-indigo-600">{{ number_format($eligibility['total_score'], 2) }}</p>
+            </div>
+
+            <!-- Section Scores -->
+            @if(!empty($eligibility['sections']))
+                <div>
+                    <h3 class="text-sm font-medium text-gray-700 mb-3">Section Scores</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        @foreach($eligibility['sections'] as $section)
+                            <div class="p-3 bg-gray-50 rounded-lg">
+                                <p class="text-xs text-gray-500 mb-1">{{ $section['name'] }}</p>
+                                <p class="text-lg font-semibold text-gray-900">{{ number_format($section['score'], 2) }}</p>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
+            <!-- Subsection Scores -->
+            @if(!empty($eligibility['subsections']))
+                <div>
+                    <h3 class="text-sm font-medium text-gray-700 mb-3">Subsection Scores</h3>
+                    <div class="space-y-4">
+                        @foreach($eligibility['subsections'] as $sectionName => $subsections)
+                            <div class="border-l-4 border-indigo-500 pl-4">
+                                <h4 class="text-sm font-semibold text-gray-800 mb-2">{{ $sectionName }}</h4>
+                                <div class="space-y-2">
+                                    @foreach($subsections as $subsection)
+                                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                            <span class="text-sm text-gray-700">{{ $subsection['name'] }}</span>
+                                            <span class="text-sm font-medium text-gray-900">{{ number_format($subsection['score'], 2) }}</span>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
+            <!-- Preferred Courses vs Passing Score -->
+            @if(!empty($eligibility['courses']))
+                <div>
+                    <h3 class="text-sm font-medium text-gray-700 mb-3">Preferred Courses vs Passing Score</h3>
+                    <div class="space-y-3">
+                        @foreach($eligibility['courses'] as $courseData)
+                            @php
+                                $course = $courseData['course'];
+                                $passed = $courseData['passed'];
+                                $required = $courseData['required'];
+                                $priority = $courseData['priority'];
+                            @endphp
+                            <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900">
+                                        {{ $course->course_name }} ({{ $course->course_code }})
+                                    </p>
+                                    <p class="text-xs text-gray-500 mt-1">Preferred Course {{ $priority }}</p>
+                                    @if($required !== null)
+                                        <p class="text-xs text-gray-500 mt-1">Required: {{ number_format($required, 2) }}</p>
+                                    @endif
+                                </div>
+                                <div class="ml-4">
+                                    @if($required === null)
+                                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                                            NO PASSING SCORE
+                                        </span>
+                                    @elseif($passed)
+                                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                            PASS
+                                        </span>
+                                    @else
+                                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                            FAIL
+                                        </span>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
+            <!-- Final Recommendation -->
+            <div class="pt-4 border-t border-gray-200">
+                <h3 class="text-sm font-medium text-gray-700 mb-2">Final Recommendation</h3>
+                @if($eligibility['final_recommendation'])
+                    <p class="text-lg font-semibold text-green-600">{{ $eligibility['final_recommendation'] }}</p>
+                @else
+                    <p class="text-lg font-semibold text-red-600">Not Qualified in Any Preferred Course</p>
+                @endif
+            </div>
+        @else
+            <div class="text-center py-8">
+                <p class="text-sm text-gray-500">No exam attempt found for this applicant.</p>
+            </div>
         @endif
     </div>
 </div>

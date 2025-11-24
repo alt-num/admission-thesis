@@ -17,7 +17,8 @@ return new class extends Migration
                 ->constrained('exam_questions', 'question_id')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete();
-            $table->string('choice_text');
+            $table->string('choice_text')->nullable();
+            $table->string('choice_image')->nullable();
             $table->boolean('is_correct')->default(false);
             $table->timestamps();
         });

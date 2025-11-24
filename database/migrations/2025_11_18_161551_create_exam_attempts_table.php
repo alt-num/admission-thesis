@@ -13,6 +13,14 @@ return new class extends Migration
     {
         Schema::create('exam_attempts', function (Blueprint $table) {
             $table->id('attempt_id');
+            $table->foreignId('exam_id')
+                ->constrained('exams', 'exam_id')
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete();
+            $table->foreignId('session_id')
+                ->constrained('exam_sessions', 'session_id')
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete();
             $table->foreignId('applicant_id')
                 ->constrained('applicants', 'applicant_id')
                 ->cascadeOnUpdate()
@@ -23,6 +31,8 @@ return new class extends Migration
             $table->decimal('score_verbal', 5, 2)->default(0);
             $table->decimal('score_nonverbal', 5, 2)->default(0);
             $table->timestamps();
+
+            $table->unique(['applicant_id', 'exam_id']);
         });
     }
 

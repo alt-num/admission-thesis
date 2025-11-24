@@ -47,7 +47,16 @@ class ApplicantController extends Controller
         $campuses = Campus::orderBy('campus_name')->get();
         $courses = Course::with('department')->orderBy('course_name')->get();
 
-        return view('admission.applicants.create', compact('campuses', 'courses'));
+        // Get MAIN campus ID for default selection
+        $mainCampus = Campus::where('campus_code', 'MAIN')->first();
+        $defaultCampusId = $mainCampus ? $mainCampus->campus_id : null;
+
+        // Calculate current academic year (e.g., 2025-2026)
+        $currentYear = (int) date('Y');
+        $nextYear = $currentYear + 1;
+        $defaultSchoolYear = "{$currentYear}-{$nextYear}";
+
+        return view('admission.applicants.create', compact('campuses', 'courses', 'defaultCampusId', 'defaultSchoolYear'));
     }
 
     /**
@@ -118,10 +127,13 @@ class ApplicantController extends Controller
             'preferredCourse3',
             'declaration',
             'examAttempts.exam',
+            'examAttempts.subsectionScores.subsection.section',
             'courseResults.course'
         ]);
 
-        return view('admission.applicants.show', compact('applicant'));
+        $eligibility = $this->computeCourseEligibility($applicant);
+
+        return view('admission.applicants.show', compact('applicant', 'eligibility'));
     }
 
     /**
@@ -175,5 +187,110 @@ class ApplicantController extends Controller
         $applicant->load('declaration');
 
         return view('admission.applicants.declaration', compact('applicant'));
+    }
+
+    /**
+     * Compute course eligibility based on exam scores.
+     */
+    private function computeCourseEligibility(Applicant $applicant): array
+    {
+        // Get the most recent exam attempt
+        $examAttempt = $applicant->examAttempts()
+            ->with(['exam', 'subsectionScores.subsection.section'])
+            ->latest('started_at')
+            ->first();
+
+        if (!$examAttempt) {
+            return [
+                'total_score' => null,
+                'sections' => [],
+                'subsections' => [],
+                'courses' => [],
+                'final_recommendation' => null,
+            ];
+        }
+
+        // Get section scores from exam_attempts
+        $sections = [];
+        if ($examAttempt->score_verbal !== null) {
+            $sections[] = [
+                'name' => 'Verbal',
+                'score' => (float) $examAttempt->score_verbal,
+            ];
+        }
+        if ($examAttempt->score_nonverbal !== null) {
+            $sections[] = [
+                'name' => 'Nonverbal',
+                'score' => (float) $examAttempt->score_nonverbal,
+            ];
+        }
+
+        // Get subsection scores grouped by section
+        $subsections = [];
+        $subsectionScores = $examAttempt->subsectionScores()
+            ->with('subsection.section')
+            ->get();
+
+        foreach ($subsectionScores as $subsectionScore) {
+            $subsection = $subsectionScore->subsection;
+            $section = $subsection->section;
+            
+            $sectionName = $section->name ?? 'Unknown';
+            if (!isset($subsections[$sectionName])) {
+                $subsections[$sectionName] = [];
+            }
+            
+            $subsections[$sectionName][] = [
+                'name' => $subsection->name,
+                'score' => (float) $subsectionScore->score,
+            ];
+        }
+
+        // Get preferred courses and check eligibility
+        $courses = [];
+        $preferredCourses = [
+            1 => $applicant->preferredCourse1,
+            2 => $applicant->preferredCourse2,
+            3 => $applicant->preferredCourse3,
+        ];
+
+        foreach ($preferredCourses as $priority => $course) {
+            if (!$course) {
+                continue;
+            }
+
+            $totalScore = (float) $examAttempt->score_total;
+            $passingScore = $course->passing_score;
+            
+            // If passing_score is null, automatically FAIL
+            $passed = false;
+            if ($passingScore !== null) {
+                $passed = $totalScore >= $passingScore;
+            }
+
+            $courses[] = [
+                'course' => $course,
+                'passed' => $passed,
+                'required' => $passingScore,
+                'priority' => $priority,
+            ];
+        }
+
+        // Determine final recommendation (highest priority passed course)
+        $finalRecommendation = null;
+        foreach ($courses as $courseData) {
+            if ($courseData['passed']) {
+                $finalRecommendation = $courseData['course']->course_code;
+                break;
+            }
+        }
+
+        return [
+            'total_score' => (float) $examAttempt->score_total,
+            'sections' => $sections,
+            'subsections' => $subsections,
+            'courses' => $courses,
+            'final_recommendation' => $finalRecommendation,
+        ];
     }
 }

@@ -19,8 +19,9 @@ return new class extends Migration
                 ->constrained('departments', 'department_id')
                 ->cascadeOnUpdate()
                 ->restrictOnDelete();
+            $table->integer('passing_score')->nullable();
             $table->timestamps();
-        });
+        }); 
     }
 
     /**

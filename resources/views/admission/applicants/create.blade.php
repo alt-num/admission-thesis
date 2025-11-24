@@ -78,7 +78,7 @@
                             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
                         <option value="">Select Campus</option>
                         @foreach($campuses as $campus)
-                            <option value="{{ $campus->campus_id }}" {{ old('campus_id') == $campus->campus_id ? 'selected' : '' }}>
+                            <option value="{{ $campus->campus_id }}" {{ old('campus_id', $defaultCampusId) == $campus->campus_id ? 'selected' : '' }}>
                                 {{ $campus->campus_name }}
                             </option>
                         @endforeach
@@ -93,7 +93,7 @@
                     <input type="text" 
                            name="school_year" 
                            id="school_year" 
-                           value="{{ old('school_year') }}"
+                           value="{{ old('school_year', $defaultSchoolYear) }}"
                            placeholder="e.g., 2024-2025"
                            required
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">

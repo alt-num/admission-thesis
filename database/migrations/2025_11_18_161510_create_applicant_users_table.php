@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('username')->unique();
             $table->string('password');
             $table->string('account_status')->default('active');
+            $table->rememberToken();
             $table->timestamps();
         });
     }

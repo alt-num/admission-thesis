@@ -13,6 +13,10 @@ return new class extends Migration
     {
         Schema::create('exam_sections', function (Blueprint $table) {
             $table->id('section_id');
+            $table->foreignId('exam_id')
+                ->constrained('exams', 'exam_id')
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete();
             $table->string('name');
             $table->unsignedInteger('order_no')->default(1);
             $table->timestamps();

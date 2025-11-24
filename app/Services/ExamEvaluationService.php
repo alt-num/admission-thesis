@@ -5,33 +5,28 @@ namespace App\Services;
 use App\Models\Applicant;
 use App\Models\ApplicantCourseResult;
 use App\Models\Course;
-use App\Models\ExamAttempt;
 use Illuminate\Support\Facades\DB;
 
 class ExamEvaluationService
 {
     /**
-     * Evaluate an applicant's exam attempt and create course results.
+     * Evaluate an applicant's exam score and create course results.
      *
-     * @param ExamAttempt $examAttempt
+     * @param Applicant $applicant
+     * @param float $scorePercentage The exam score percentage (0-100)
      * @return void
      */
-    public function evaluateExamAttempt(ExamAttempt $examAttempt): void
+    public static function evaluate(Applicant $applicant, float $scorePercentage): void
     {
-        DB::transaction(function () use ($examAttempt) {
-            $applicant = $examAttempt->applicant;
-            
-            // Get the total score from the exam attempt
-            // Assuming score_total is already a percentage or total score
-            $applicantScore = (float) $examAttempt->score_total;
-
-            // Evaluate each preferred course
+        DB::transaction(function () use ($applicant, $scorePercentage) {
+            // Retrieve all preferred courses
             $preferredCourses = [
                 $applicant->preferred_course_1,
                 $applicant->preferred_course_2,
                 $applicant->preferred_course_3,
             ];
 
+            // For each preferred course
             foreach ($preferredCourses as $courseId) {
                 if (!$courseId) {
                     continue; // Skip if no course selected
@@ -45,13 +40,15 @@ class ExamEvaluationService
                 // Get passing score for the course
                 $passingScore = $course->passing_score;
 
-                // If passing_score is null, skip evaluation for this course
-                if ($passingScore === null) {
-                    continue;
-                }
-
                 // Determine result status
-                $resultStatus = $applicantScore >= $passingScore ? 'Pass' : 'Fail';
+                // If passing_score is null → result = 'Pass' (no minimum requirement)
+                if ($passingScore === null) {
+                    $resultStatus = 'Pass';
+                } elseif ($scorePercentage >= $passingScore) {
+                    $resultStatus = 'Pass';
+                } else {
+                    $resultStatus = 'Fail';
+                }
 
                 // Check if result already exists for this applicant and course
                 $existingResult = ApplicantCourseResult::where('applicant_id', $applicant->applicant_id)
@@ -62,7 +59,7 @@ class ExamEvaluationService
                     // Update existing result
                     $existingResult->update([
                         'result_status' => $resultStatus,
-                        'score_value' => $applicantScore,
+                        'score_value' => $scorePercentage,
                     ]);
                 } else {
                     // Create new result
@@ -70,7 +67,7 @@ class ExamEvaluationService
                         'applicant_id' => $applicant->applicant_id,
                         'course_id' => $courseId,
                         'result_status' => $resultStatus,
-                        'score_value' => $applicantScore,
+                        'score_value' => $scorePercentage,
                     ]);
                 }
             }
@@ -80,25 +77,6 @@ class ExamEvaluationService
                 'status' => 'ExamTaken',
             ]);
         });
-    }
-
-    /**
-     * Re-evaluate an applicant's exam results (useful if passing scores change).
-     *
-     * @param Applicant $applicant
-     * @return void
-     */
-    public function reevaluateApplicant(Applicant $applicant): void
-    {
-        // Get the most recent completed exam attempt
-        $latestAttempt = $applicant->examAttempts()
-            ->whereNotNull('finished_at')
-            ->orderBy('finished_at', 'desc')
-            ->first();
-
-        if ($latestAttempt) {
-            $this->evaluateExamAttempt($latestAttempt);
-        }
     }
 }
 

@@ -13,11 +13,22 @@ return new class extends Migration
     {
         Schema::create('exam_questions', function (Blueprint $table) {
             $table->id('question_id');
+            $table->foreignId('exam_id')
+                ->constrained('exams', 'exam_id')
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete();
+            $table->foreignId('section_id')
+                ->nullable()
+                ->constrained('exam_sections', 'section_id')
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete();
             $table->foreignId('subsection_id')
+                ->nullable()
                 ->constrained('exam_subsections', 'subsection_id')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete();
-            $table->text('question_text');
+            $table->text('question_text')->nullable();
+            $table->string('question_image')->nullable();
             $table->enum('type', ['MCQ', 'TRUE_FALSE'])->default('MCQ');
             $table->unsignedInteger('order_no')->default(1);
             $table->timestamps();

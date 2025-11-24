@@ -16,6 +16,19 @@ return new class extends Migration
             $table->string('title');
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(false);
+            $table->smallInteger('year');
+            $table->timestamps();
+        });
+
+        Schema::create('exam_sessions', function (Blueprint $table) {
+            $table->id('session_id');
+            $table->foreignId('exam_id')
+                ->constrained('exams', 'exam_id')
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete();
+            $table->dateTime('start_time');
+            $table->dateTime('end_time');
+            $table->integer('capacity')->nullable();
             $table->timestamps();
         });
     }
@@ -25,6 +38,7 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::dropIfExists('exam_sessions');
         Schema::dropIfExists('exams');
     }
 };
