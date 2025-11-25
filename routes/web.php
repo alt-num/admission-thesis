@@ -5,6 +5,11 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\AdmissionDashboardController;
 use App\Http\Controllers\ApplicantController;
 use App\Http\Controllers\ExamController;
+use App\Http\Controllers\Admission\ExamEditorController;
+use App\Http\Controllers\Admission\ExamEditor\SectionController;
+use App\Http\Controllers\Admission\ExamEditor\SubsectionController;
+use App\Http\Controllers\Admission\ExamEditor\QuestionController;
+use App\Http\Controllers\Admission\ExamEditor\ChoiceController;
 use App\Http\Controllers\MasterDataController;
 use App\Http\Controllers\SettingsController;
 
@@ -35,7 +40,37 @@ Route::middleware('auth:admission')->prefix('admission')->name('admission.')->gr
     Route::get('/exams/create', [ExamController::class, 'create'])->name('exams.create');
     Route::post('/exams', [ExamController::class, 'store'])->name('exams.store');
     Route::get('/exams/{exam}', [ExamController::class, 'show'])->name('exams.show');
-    Route::get('/exams/{exam}/editor', [ExamController::class, 'editor'])->name('exams.editor');
+    Route::post('/exams/{exam}/activate', [ExamController::class, 'activate'])->name('exams.activate');
+    Route::post('/exams/{exam}/deactivate', [ExamController::class, 'deactivate'])->name('exams.deactivate');
+    Route::get('/exams/{exam}/editor', [ExamEditorController::class, 'index'])->name('exams.editor');
+
+    // Exam Editor API Routes
+    Route::prefix('exams/{exam}')->group(function () {
+        // Sections
+        Route::post('/sections/create', [SectionController::class, 'store'])->name('exams.sections.store');
+        Route::post('/sections/{section}/update', [SectionController::class, 'update'])->name('exams.sections.update');
+        Route::delete('/sections/{section}/delete', [SectionController::class, 'destroy'])->name('exams.sections.destroy');
+        Route::post('/sections/reorder', [SectionController::class, 'reorder'])->name('exams.sections.reorder');
+
+        // Subsections
+        Route::post('/sections/{section}/subsections/create', [SubsectionController::class, 'store'])->name('exams.subsections.store');
+        Route::post('/subsections/{subsection}/update', [SubsectionController::class, 'update'])->name('exams.subsections.update');
+        Route::delete('/subsections/{subsection}/delete', [SubsectionController::class, 'destroy'])->name('exams.subsections.destroy');
+        Route::post('/subsections/reorder', [SubsectionController::class, 'reorder'])->name('exams.subsections.reorder');
+
+        // Questions
+        Route::post('/sections/{section}/questions/create', [QuestionController::class, 'storeToSection'])->name('exams.questions.storeToSection');
+        Route::post('/subsections/{subsection}/questions/create', [QuestionController::class, 'store'])->name('exams.questions.store');
+        Route::post('/questions/{question}/update', [QuestionController::class, 'update'])->name('exams.questions.update');
+        Route::delete('/questions/{question}/delete', [QuestionController::class, 'destroy'])->name('exams.questions.destroy');
+        Route::post('/questions/reorder', [QuestionController::class, 'reorder'])->name('exams.questions.reorder');
+
+        // Choices
+        Route::post('/questions/{question}/choices', [ChoiceController::class, 'store'])->name('exams.choices.store');
+        Route::post('/choices/{choice}/update', [ChoiceController::class, 'update'])->name('exams.choices.update');
+        Route::delete('/choices/{choice}/delete', [ChoiceController::class, 'destroy'])->name('exams.choices.destroy');
+        Route::post('/questions/{question}/toggle-true-false', [ChoiceController::class, 'toggleTrueFalse'])->name('exams.choices.toggleTrueFalse');
+    });
 
     // Master Data
     Route::get('/courses', [MasterDataController::class, 'courses'])->name('courses.index');

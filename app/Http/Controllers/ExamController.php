@@ -33,18 +33,17 @@ class ExamController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'is_active' => 'nullable|boolean',
         ]);
 
-        // If this exam is being set as active, deactivate all other exams
-        if ($request->boolean('is_active')) {
-            Exam::where('is_active', true)->update(['is_active' => false]);
-        }
+        // Automatically set the year to current year
+        $year = now()->year;
 
+        // Create exam as inactive by default
         Exam::create([
             'title' => $validated['title'],
             'description' => $validated['description'] ?? null,
-            'is_active' => $request->boolean('is_active', false),
+            'is_active' => false,
+            'year' => $year,
         ]);
 
         return redirect()
@@ -61,11 +60,27 @@ class ExamController extends Controller
     }
 
     /**
-     * Show the exam editor (placeholder).
+     * Activate an exam (deactivates all others).
      */
-    public function editor(Exam $exam)
+    public function activate(Exam $exam)
     {
-        return view('admission.exams.editor', compact('exam'));
+        // Deactivate all other exams
+        Exam::where('is_active', true)->update(['is_active' => false]);
+
+        // Activate this exam
+        $exam->update(['is_active' => true]);
+
+        return back()->with('success', 'Exam activated successfully!');
+    }
+
+    /**
+     * Deactivate an exam.
+     */
+    public function deactivate(Exam $exam)
+    {
+        $exam->update(['is_active' => false]);
+
+        return back()->with('success', 'Exam deactivated successfully!');
     }
 }
 

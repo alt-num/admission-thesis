@@ -65,6 +65,11 @@ class Applicant extends Model
         return $this->hasMany(ApplicantCourseResult::class, 'applicant_id', 'applicant_id');
     }
 
+    public function examSchedules(): HasMany
+    {
+        return $this->hasMany(ApplicantExamSchedule::class, 'applicant_id', 'applicant_id');
+    }
+
     /**
      * Generate a unique application reference number.
      * Format: <city_code>-<year><sequence>

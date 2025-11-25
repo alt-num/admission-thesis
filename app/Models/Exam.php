@@ -18,6 +18,7 @@ class Exam extends Model
         'title',
         'description',
         'is_active',
+        'year',
     ];
 
     protected $casts = [
@@ -34,6 +35,11 @@ class Exam extends Model
     public function attempts(): HasMany
     {
         return $this->hasMany(ExamAttempt::class, 'exam_id', 'exam_id');
+    }
+
+    public function schedules(): HasMany
+    {
+        return $this->hasMany(ExamSchedule::class, 'exam_id', 'exam_id');
     }
 }
 

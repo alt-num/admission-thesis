@@ -53,10 +53,30 @@
                                 {{ $exam->created_at->format('M d, Y') }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <a href="{{ route('admission.exams.show', $exam) }}" 
-                                   class="text-blue-600 hover:text-blue-900 mr-4">
-                                    View
-                                </a>
+                                <div class="flex items-center space-x-3">
+                                    <a href="{{ route('admission.exams.show', $exam) }}" 
+                                       class="text-blue-600 hover:text-blue-900">
+                                        View
+                                    </a>
+                                    <span class="text-gray-300">|</span>
+                                    @if($exam->is_active)
+                                        <form method="POST" action="{{ route('admission.exams.deactivate', $exam) }}" class="inline">
+                                            @csrf
+                                            <button type="submit" 
+                                                    class="text-red-600 hover:text-red-900 font-medium">
+                                                Deactivate
+                                            </button>
+                                        </form>
+                                    @else
+                                        <form method="POST" action="{{ route('admission.exams.activate', $exam) }}" class="inline">
+                                            @csrf
+                                            <button type="submit" 
+                                                    class="text-green-600 hover:text-green-900 font-medium">
+                                                Activate
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                     @empty

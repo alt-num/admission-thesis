@@ -40,25 +40,10 @@
                 @enderror
             </div>
 
-            <!-- Active Status -->
-            <div>
-                <div class="flex items-center">
-                    <input type="checkbox" 
-                           name="is_active" 
-                           id="is_active" 
-                           value="1"
-                           {{ old('is_active') ? 'checked' : '' }}
-                           class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                    <label for="is_active" class="ml-2 block text-sm text-gray-700">
-                        Set as active exam
-                    </label>
-                </div>
-                <p class="mt-1 text-xs text-gray-500">
-                    Only one exam can be active at a time. If checked, this exam will become active and all others will be deactivated.
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p class="text-sm text-blue-800">
+                    <strong>Note:</strong> New exams are created as inactive by default. You can activate them from the exams list page after creation.
                 </p>
-                @error('is_active')
-                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                @enderror
             </div>
 
             <!-- Form Actions -->
