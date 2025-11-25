@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Admission;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admission\Exam\Scheduling\StoreExamScheduleRequest;
 use App\Http\Requests\Admission\Exam\Scheduling\UpdateExamScheduleRequest;
+use App\Mail\ExamScheduleAssignedMail;
 use App\Models\Applicant;
 use App\Models\ApplicantExamSchedule;
 use App\Models\Exam;
 use App\Models\ExamSchedule;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 
 class ExamScheduleController extends Controller
 {
@@ -186,13 +188,29 @@ class ExamScheduleController extends Controller
             }
         }
 
-        // Create ApplicantExamSchedule records
+        // Load schedule with exam relationship
+        $schedule->load('exam');
+
+        // Create ApplicantExamSchedule records and send emails
         foreach ($applicantIds as $applicantId) {
             ApplicantExamSchedule::create([
                 'applicant_id' => $applicantId,
                 'schedule_id' => $schedule->schedule_id,
                 'assigned_at' => now(),
             ]);
+
+            // Load applicant with campus relationship
+            $applicant = Applicant::with('campus')->find($applicantId);
+
+            // Send exam schedule assignment email
+            Mail::to($applicant->email)->send(
+                new ExamScheduleAssignedMail(
+                    $applicant,
+                    $schedule,
+                    $schedule->exam->title,
+                    $applicant->campus->campus_name
+                )
+            );
         }
 
         $count = count($applicantIds);

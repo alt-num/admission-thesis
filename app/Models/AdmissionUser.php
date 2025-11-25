@@ -21,6 +21,7 @@ class AdmissionUser extends Authenticatable
         'username',
         'password',
         'role',
+        'account_status',
     ];
 
     protected $hidden = [

@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\ApplicantAccountCreatedMail;
+use App\Mail\ExamScheduleAssignedMail;
 use App\Models\Applicant;
 use App\Models\ApplicantExamSchedule;
 use App\Models\ApplicantUser;
@@ -12,6 +14,7 @@ use App\Models\ExamSchedule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class ApplicantController extends Controller
@@ -23,7 +26,7 @@ class ApplicantController extends Controller
     {
         $search = $request->query('search');
 
-        $applicants = Applicant::with(['campus', 'preferredCourse1', 'preferredCourse2', 'preferredCourse3'])
+        $applicants = Applicant::with(['campus', 'preferredCourse1', 'preferredCourse2', 'preferredCourse3', 'applicantUser'])
             ->when($search, function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('app_ref_no', 'ilike', "%{$search}%")
@@ -125,10 +128,22 @@ class ApplicantController extends Controller
             'account_status' => 'Active',
         ]);
 
+        // Send account creation email
+        Mail::to($applicant->email)->send(
+            new ApplicantAccountCreatedMail(
+                $applicant,
+                $username,
+                $defaultPassword,
+                $campus->campus_name
+            )
+        );
+
         // Assign to schedule if selected
         $scheduleId = $validated['schedule_id'] ?? null;
         if ($scheduleId) {
-            $schedule = ExamSchedule::withCount('applicantExamSchedules')->find($scheduleId);
+            $schedule = ExamSchedule::withCount('applicantExamSchedules')
+                ->with('exam')
+                ->find($scheduleId);
             
             // Check capacity
             if ($schedule->capacity !== null && $schedule->applicant_exam_schedules_count >= $schedule->capacity) {
@@ -143,6 +158,16 @@ class ApplicantController extends Controller
                 'schedule_id' => $scheduleId,
                 'assigned_at' => now(),
             ]);
+
+            // Send exam schedule assignment email
+            Mail::to($applicant->email)->send(
+                new ExamScheduleAssignedMail(
+                    $applicant,
+                    $schedule,
+                    $schedule->exam->title,
+                    $campus->campus_name
+                )
+            );
         }
 
         return redirect()
@@ -163,7 +188,9 @@ class ApplicantController extends Controller
             'declaration',
             'examAttempts.exam',
             'examAttempts.subsectionScores.subsection.section',
-            'courseResults.course'
+            'courseResults.course',
+            'applicantUser',
+            'examSchedules.examSchedule.exam'
         ]);
 
         $eligibility = $this->computeCourseEligibility($applicant);

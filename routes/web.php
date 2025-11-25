@@ -34,6 +34,8 @@ Route::middleware('auth:admission')->prefix('admission')->name('admission.')->gr
     Route::put('/applicants/{applicant}', [ApplicantController::class, 'update'])->name('applicants.update');
     Route::get('/applicants/{applicant}/declaration', [ApplicantController::class, 'declarationViewing'])->name('applicants.declaration');
     Route::post('/applicants/{applicant}/declaration/remarks', [\App\Http\Controllers\ApplicantDeclarationController::class, 'saveRemarks'])->name('applicants.declaration.remarks');
+    Route::post('/applicants/{applicant}/send-credentials', [\App\Http\Controllers\Admission\EmailController::class, 'sendCredentials'])->name('applicants.send-credentials');
+    Route::post('/applicants/{applicant}/send-schedule', [\App\Http\Controllers\Admission\EmailController::class, 'sendSchedule'])->name('applicants.send-schedule');
 
     // Exams
     Route::get('/exams', [ExamController::class, 'index'])->name('exams.index');
@@ -87,6 +89,16 @@ Route::middleware('auth:admission')->prefix('admission')->name('admission.')->gr
     Route::get('/courses', [MasterDataController::class, 'courses'])->name('courses.index');
     Route::get('/campuses', [MasterDataController::class, 'campuses'])->name('campuses.index');
     Route::get('/departments', [MasterDataController::class, 'departments'])->name('departments.index');
+
+    // Employees
+    Route::prefix('employees')->name('employees.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\EmployeeController::class, 'index'])->name('index');
+        Route::get('/{employee}', [\App\Http\Controllers\EmployeeController::class, 'show'])->name('show');
+        Route::post('/{employee}/create-account', [\App\Http\Controllers\EmployeeController::class, 'createAccount'])->name('create-account');
+        Route::post('/{employee}/reset-username', [\App\Http\Controllers\EmployeeController::class, 'resetUsername'])->name('reset-username');
+        Route::post('/{employee}/reset-password', [\App\Http\Controllers\EmployeeController::class, 'resetPassword'])->name('reset-password');
+        Route::post('/{employee}/toggle-account-status', [\App\Http\Controllers\EmployeeController::class, 'toggleAccountStatus'])->name('toggle-account-status');
+    });
 
     // Settings
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');

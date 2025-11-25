@@ -14,6 +14,15 @@ class Employees extends Seeder
 
         $employees = [
             [
+                'first_name' => 'admin',
+                'middle_name' => '',
+                'last_name' => '',
+                'status' => 'active',
+                'department_id' => 1,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+            [
                 'first_name' => 'John',
                 'middle_name' => 'Doe',
                 'last_name' => 'Smith',

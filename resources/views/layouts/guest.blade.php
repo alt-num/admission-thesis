@@ -12,6 +12,7 @@
     <div class="w-full">
         @yield('content')
     </div>
+    @include('components.toast')
 </body>
 </html>
 
