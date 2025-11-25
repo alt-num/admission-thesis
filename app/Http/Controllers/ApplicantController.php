@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Applicant;
+use App\Models\ApplicantExamSchedule;
 use App\Models\ApplicantUser;
 use App\Models\Campus;
 use App\Models\Course;
+use App\Models\Exam;
+use App\Models\ExamSchedule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -56,7 +59,18 @@ class ApplicantController extends Controller
         $nextYear = $currentYear + 1;
         $defaultSchoolYear = "{$currentYear}-{$nextYear}";
 
-        return view('admission.applicants.create', compact('campuses', 'courses', 'defaultCampusId', 'defaultSchoolYear'));
+        // Get active exam and its schedules
+        $activeExam = Exam::where('is_active', true)->first();
+        $schedules = collect();
+        
+        if ($activeExam) {
+            $schedules = ExamSchedule::where('exam_id', $activeExam->exam_id)
+                ->orderBy('schedule_date')
+                ->orderBy('start_time')
+                ->get();
+        }
+
+        return view('admission.applicants.create', compact('campuses', 'courses', 'defaultCampusId', 'defaultSchoolYear', 'schedules', 'activeExam'));
     }
 
     /**
@@ -74,6 +88,7 @@ class ApplicantController extends Controller
             'preferred_course_1' => 'nullable|exists:courses,course_id',
             'preferred_course_2' => 'nullable|exists:courses,course_id',
             'preferred_course_3' => 'nullable|exists:courses,course_id',
+            'schedule_id' => 'nullable|exists:exam_schedules,schedule_id',
         ]);
 
         // Get the campus to generate app_ref_no
@@ -109,6 +124,26 @@ class ApplicantController extends Controller
             'password' => Hash::make($defaultPassword),
             'account_status' => 'Active',
         ]);
+
+        // Assign to schedule if selected
+        $scheduleId = $validated['schedule_id'] ?? null;
+        if ($scheduleId) {
+            $schedule = ExamSchedule::withCount('applicantExamSchedules')->find($scheduleId);
+            
+            // Check capacity
+            if ($schedule->capacity !== null && $schedule->applicant_exam_schedules_count >= $schedule->capacity) {
+                return back()
+                    ->withErrors(['schedule_id' => 'This schedule is already full.'])
+                    ->withInput();
+            }
+
+            // Create assignment
+            ApplicantExamSchedule::create([
+                'applicant_id' => $applicant->applicant_id,
+                'schedule_id' => $scheduleId,
+                'assigned_at' => now(),
+            ]);
+        }
 
         return redirect()
             ->route('admission.applicants.index')

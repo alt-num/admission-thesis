@@ -59,6 +59,11 @@
                                         View
                                     </a>
                                     <span class="text-gray-300">|</span>
+                                    <a href="{{ route('admission.exams.schedules.index', $exam) }}" 
+                                       class="text-sky-600 hover:text-sky-900">
+                                        Manage Schedules
+                                    </a>
+                                    <span class="text-gray-300">|</span>
                                     @if($exam->is_active)
                                         <form method="POST" action="{{ route('admission.exams.deactivate', $exam) }}" class="inline">
                                             @csrf

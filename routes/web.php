@@ -44,6 +44,17 @@ Route::middleware('auth:admission')->prefix('admission')->name('admission.')->gr
     Route::post('/exams/{exam}/deactivate', [ExamController::class, 'deactivate'])->name('exams.deactivate');
     Route::get('/exams/{exam}/editor', [ExamEditorController::class, 'index'])->name('exams.editor');
 
+    // Exam Schedules
+    Route::prefix('exams/{exam}')->group(function () {
+        Route::get('/schedules', [\App\Http\Controllers\Admission\ExamScheduleController::class, 'index'])->name('exams.schedules.index');
+        Route::post('/schedules', [\App\Http\Controllers\Admission\ExamScheduleController::class, 'store'])->name('exams.schedules.store');
+        Route::get('/schedules/{schedule}', [\App\Http\Controllers\Admission\ExamScheduleController::class, 'show'])->name('exams.schedules.show');
+        Route::put('/schedules/{schedule}', [\App\Http\Controllers\Admission\ExamScheduleController::class, 'update'])->name('exams.schedules.update');
+        Route::delete('/schedules/{schedule}', [\App\Http\Controllers\Admission\ExamScheduleController::class, 'destroy'])->name('exams.schedules.destroy');
+        Route::post('/schedules/{schedule}/assign', [\App\Http\Controllers\Admission\ExamScheduleController::class, 'assignApplicants'])->name('exams.schedules.assign');
+        Route::delete('/schedules/{schedule}/assigned/{applicant}', [\App\Http\Controllers\Admission\ExamScheduleController::class, 'unassignApplicant'])->name('exams.schedules.unassign');
+    });
+
     // Exam Editor API Routes
     Route::prefix('exams/{exam}')->group(function () {
         // Sections

@@ -103,6 +103,34 @@
                 </div>
             </div>
 
+            <!-- Exam Schedule -->
+            @if($schedules->isNotEmpty())
+                <div>
+                    <label for="schedule_id" class="block text-sm font-medium text-gray-700">Exam Schedule (optional)</label>
+                    <select name="schedule_id" 
+                            id="schedule_id"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                        <option value="">No schedule yet</option>
+                        @foreach($schedules as $schedule)
+                            <option value="{{ $schedule->schedule_id }}" {{ old('schedule_id') == $schedule->schedule_id ? 'selected' : '' }}>
+                                {{ $schedule->schedule_date->format('M d, Y') }} — 
+                                {{ \Carbon\Carbon::parse($schedule->start_time)->format('g:i A') }} to 
+                                {{ \Carbon\Carbon::parse($schedule->end_time)->format('g:i A') }}
+                                @if($schedule->capacity)
+                                    ({{ $schedule->capacity }} slots)
+                                @endif
+                            </option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">
+                        Assign the applicant to an exam schedule immediately. You can also assign them later.
+                    </p>
+                    @error('schedule_id')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+            @endif
+
             <!-- Preferred Courses -->
             <div class="space-y-4">
                 <h3 class="text-lg font-medium text-gray-900">Preferred Courses</h3>

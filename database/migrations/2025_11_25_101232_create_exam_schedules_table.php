@@ -20,7 +20,7 @@ return new class extends Migration
             $table->date('schedule_date');
             $table->time('start_time');
             $table->time('end_time');
-            $table->integer('capacity');
+            $table->integer('capacity')->nullable();
             $table->timestamps();
         });
     }
