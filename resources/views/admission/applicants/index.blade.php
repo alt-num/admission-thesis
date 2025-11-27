@@ -137,7 +137,7 @@
 
 <!-- Send Email Modal -->
 <div id="send-email-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+    <div class="bg-white rounded-lg shadow-xl w-[90%] md:w-[500px] lg:w-[600px] mx-4">
         <div class="p-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">Send Login Credentials</h3>
             <p class="text-sm text-gray-600 mb-6">Send login credentials to <span id="modal-email" class="font-medium"></span>?</p>

@@ -16,6 +16,12 @@ class DepartmentsTableSeeder extends Seeder
 
         $departments = [
             [
+                'faculty_code' => 'ADM',
+                'department_name' => 'Admission Office',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+            [
                 'faculty_code' => 'CAG',
                 'department_name' => 'College of Agriculture',
                 'created_at' => $now,

@@ -188,7 +188,7 @@ use Illuminate\Support\Facades\Storage;
                                                             @endif
                                                         </div>
                                                         <div class="flex items-center space-x-1">
-                                                            <button onclick="window.openEditChoiceModal({{ $choice->choice_id }}, '{{ addslashes($choice->choice_text ?? '') }}', {{ $choice->is_correct ? 'true' : 'false' }}, '{{ $choice->choice_image ? Storage::url($choice->choice_image) : '' }}')"
+                                                            <button onclick="window.openEditChoiceModal({{ $choice->choice_id }}, '{{ addslashes($choice->choice_text ?? '') }}', {{ $choice->is_correct ? 'true' : 'false' }}, '{{ $choice->choice_image ? Storage::url($choice->choice_image) : '' }}', '{{ addslashes($question->question_text ?? '') }}', '{{ addslashes($selectedSection->name ?? '') }}', '{{ addslashes($subsection->name ?? '') }}')"
                                                                     class="inline-flex items-center px-2 py-0.5 bg-gray-600 text-white text-xs font-medium rounded hover:bg-gray-700 transition-colors">
                                                                 Edit
                                                             </button>
@@ -201,7 +201,7 @@ use Illuminate\Support\Facades\Storage;
                                                 @empty
                                                     <p class="text-xs text-gray-500">No choices yet.</p>
                                                 @endforelse
-                                                <button onclick="window.openAddChoiceModal({{ $question->question_id }})"
+                                                <button onclick="window.openAddChoiceModal({{ $question->question_id }}, '{{ addslashes($question->question_text ?? '') }}', '{{ addslashes($selectedSection->name ?? '') }}', '{{ addslashes($subsection->name ?? '') }}')"
                                                         class="mt-2 inline-flex items-center px-2 py-1 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700 transition-colors">
                                                     <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -390,6 +390,8 @@ window.deleteSection = async function(sectionId) {
 
 // Subsection Modals
 window.openAddSubsectionModal = function(sectionId) {
+    // Only set the section ID, do NOT reset the form
+    // This preserves user input if they accidentally close and reopen the modal
     document.getElementById('addSubsectionSectionId').value = sectionId;
     document.getElementById('addSubsectionModal').classList.remove('hidden');
 };
@@ -437,16 +439,104 @@ window.deleteSubsection = async function(subsectionId) {
 
 // Question Modals
 window.openAddQuestionModal = function(subsectionId) {
+    // Reset the form first
+    const form = document.getElementById('addQuestionForm');
+    if (form) {
+        form.reset();
+    }
+    
+    // Set the required hidden values
     document.getElementById('addQuestionSubsectionId').value = subsectionId;
     document.getElementById('addQuestionSectionId').value = '';
     document.getElementById('addQuestionToSection').value = '0';
+    
+    // Reset type dropdown to MCQ
+    const typeSelect = document.getElementById('addQuestionType');
+    if (typeSelect) {
+        typeSelect.value = 'MCQ';
+    }
+    
+    // Hide True/False options
+    const trueFalseOptions = document.getElementById('addQuestionTrueFalseOptions');
+    if (trueFalseOptions) {
+        trueFalseOptions.classList.add('hidden');
+    }
+    
+    // Reset correct_answer to False (default)
+    const correctAnswerSelect = trueFalseOptions ? trueFalseOptions.querySelector('select[name="correct_answer"]') : null;
+    if (correctAnswerSelect) {
+        correctAnswerSelect.value = 'False';
+    }
+    
+    // Clear any file inputs
+    const questionImageInput = form ? form.querySelector('input[name="question_image"]') : null;
+    if (questionImageInput) {
+        questionImageInput.value = '';
+    }
+    
+    // Clear textarea
+    const questionTextArea = form ? form.querySelector('textarea[name="question_text"]') : null;
+    if (questionTextArea) {
+        questionTextArea.value = '';
+    }
+    
+    // Clear order number
+    const orderNoInput = form ? form.querySelector('input[name="order_no"]') : null;
+    if (orderNoInput) {
+        orderNoInput.value = '';
+    }
+    
     document.getElementById('addQuestionModal').classList.remove('hidden');
 };
 
 window.openAddQuestionToSectionModal = function(sectionId) {
+    // Reset the form first
+    const form = document.getElementById('addQuestionForm');
+    if (form) {
+        form.reset();
+    }
+    
+    // Set the required hidden values
     document.getElementById('addQuestionSubsectionId').value = '';
     document.getElementById('addQuestionSectionId').value = sectionId;
     document.getElementById('addQuestionToSection').value = '1';
+    
+    // Reset type dropdown to MCQ
+    const typeSelect = document.getElementById('addQuestionType');
+    if (typeSelect) {
+        typeSelect.value = 'MCQ';
+    }
+    
+    // Hide True/False options
+    const trueFalseOptions = document.getElementById('addQuestionTrueFalseOptions');
+    if (trueFalseOptions) {
+        trueFalseOptions.classList.add('hidden');
+    }
+    
+    // Reset correct_answer to False (default)
+    const correctAnswerSelect = trueFalseOptions ? trueFalseOptions.querySelector('select[name="correct_answer"]') : null;
+    if (correctAnswerSelect) {
+        correctAnswerSelect.value = 'False';
+    }
+    
+    // Clear any file inputs
+    const questionImageInput = form ? form.querySelector('input[name="question_image"]') : null;
+    if (questionImageInput) {
+        questionImageInput.value = '';
+    }
+    
+    // Clear textarea
+    const questionTextArea = form ? form.querySelector('textarea[name="question_text"]') : null;
+    if (questionTextArea) {
+        questionTextArea.value = '';
+    }
+    
+    // Clear order number
+    const orderNoInput = form ? form.querySelector('input[name="order_no"]') : null;
+    if (orderNoInput) {
+        orderNoInput.value = '';
+    }
+    
     document.getElementById('addQuestionModal').classList.remove('hidden');
 };
 
@@ -561,8 +651,55 @@ window.deleteQuestion = async function(questionId) {
 };
 
 // Choice Modals
-window.openAddChoiceModal = function(questionId) {
+window.openAddChoiceModal = function(questionId, questionText, sectionName, subsectionName) {
+    // Reset the form first
+    const form = document.getElementById('addChoiceForm');
+    if (form) {
+        form.reset();
+    }
+    
+    // Set the required hidden value
     document.getElementById('addChoiceQuestionId').value = questionId;
+    
+    // Populate question preview
+    const questionPreviewText = document.getElementById('addChoiceQuestionText');
+    const questionPreviewSection = document.getElementById('addChoiceQuestionSection');
+    const questionPreviewSubsection = document.getElementById('addChoiceQuestionSubsection');
+    
+    if (questionPreviewText) {
+        questionPreviewText.textContent = questionText || '(No question text)';
+    }
+    if (questionPreviewSection) {
+        questionPreviewSection.textContent = sectionName ? `Section: ${sectionName}` : '';
+    }
+    if (questionPreviewSubsection) {
+        questionPreviewSubsection.textContent = subsectionName ? `Subsection: ${subsectionName}` : '';
+    }
+    
+    // Clear choice text input
+    const choiceTextInput = form ? form.querySelector('input[name="choice_text"]') : null;
+    if (choiceTextInput) {
+        choiceTextInput.value = '';
+    }
+    
+    // Clear file input
+    const choiceImageInput = form ? form.querySelector('input[name="choice_image"]') : null;
+    if (choiceImageInput) {
+        choiceImageInput.value = '';
+    }
+    
+    // Uncheck is_correct checkbox
+    const isCorrectCheckbox = form ? form.querySelector('input[name="is_correct"][type="checkbox"]') : null;
+    if (isCorrectCheckbox) {
+        isCorrectCheckbox.checked = false;
+    }
+    
+    // Also ensure the hidden is_correct field is set to 0
+    const hiddenIsCorrect = form ? form.querySelector('input[name="is_correct"][type="hidden"]') : null;
+    if (hiddenIsCorrect) {
+        hiddenIsCorrect.value = '0';
+    }
+    
     document.getElementById('addChoiceModal').classList.remove('hidden');
 };
 
@@ -570,10 +707,25 @@ window.closeAddChoiceModal = function() {
     document.getElementById('addChoiceModal').classList.add('hidden');
 };
 
-window.openEditChoiceModal = function(choiceId, choiceText, isCorrect, imageUrl = '') {
+window.openEditChoiceModal = function(choiceId, choiceText, isCorrect, imageUrl = '', questionText = '', sectionName = '', subsectionName = '') {
     document.getElementById('editChoiceId').value = choiceId;
     document.getElementById('editChoiceText').value = choiceText;
     document.getElementById('editChoiceIsCorrect').checked = isCorrect;
+    
+    // Populate question preview
+    const questionPreviewText = document.getElementById('editChoiceQuestionText');
+    const questionPreviewSection = document.getElementById('editChoiceQuestionSection');
+    const questionPreviewSubsection = document.getElementById('editChoiceQuestionSubsection');
+    
+    if (questionPreviewText) {
+        questionPreviewText.textContent = questionText || '(No question text)';
+    }
+    if (questionPreviewSection) {
+        questionPreviewSection.textContent = sectionName ? `Section: ${sectionName}` : '';
+    }
+    if (questionPreviewSubsection) {
+        questionPreviewSubsection.textContent = subsectionName ? `Subsection: ${subsectionName}` : '';
+    }
     
     // Handle image preview
     const imagePreview = document.getElementById('editChoiceImagePreview');
@@ -623,7 +775,7 @@ window.deleteChoice = async function(choiceId) {
 };
 
 // Form Submission Helper
-async function submitForm(formId, url, method = 'POST') {
+async function submitForm(formId, url, method = 'POST', keepModalOpen = false) {
     const form = document.getElementById(formId);
     const formData = new FormData(form);
 
@@ -640,20 +792,37 @@ async function submitForm(formId, url, method = 'POST') {
 
         const data = await response.json();
         if (data.success) {
-            // Close the modal
-            const modalMap = {
-                'addSectionForm': 'closeAddSectionModal',
-                'editSectionForm': 'closeEditSectionModal',
-                'addSubsectionForm': 'closeAddSubsectionModal',
-                'editSubsectionForm': 'closeEditSubsectionModal',
-                'addQuestionForm': 'closeAddQuestionModal',
-                'editQuestionForm': 'closeEditQuestionModal',
-                'addChoiceForm': 'closeAddChoiceModal',
-                'editChoiceForm': 'closeEditChoiceModal',
-            };
+            // Reset subsection form on successful creation (before closing)
+            if (formId === 'addSubsectionForm') {
+                const form = document.getElementById('addSubsectionForm');
+                if (form) {
+                    form.reset();
+                }
+            }
             
-            if (modalMap[formId] && window[modalMap[formId]]) {
-                window[modalMap[formId]]();
+            // Close the modal only if not keeping it open
+            if (!keepModalOpen) {
+                const modalMap = {
+                    'addSectionForm': 'closeAddSectionModal',
+                    'editSectionForm': 'closeEditSectionModal',
+                    'addSubsectionForm': 'closeAddSubsectionModal',
+                    'editSubsectionForm': 'closeEditSubsectionModal',
+                    'addQuestionForm': 'closeAddQuestionModal',
+                    'editQuestionForm': 'closeEditQuestionModal',
+                    'addChoiceForm': 'closeAddChoiceModal',
+                    'editChoiceForm': 'closeEditChoiceModal',
+                };
+                
+                if (modalMap[formId] && window[modalMap[formId]]) {
+                    window[modalMap[formId]]();
+                }
+            } else {
+                // Reset form fields while keeping modal open
+                if (formId === 'addQuestionForm') {
+                    resetQuestionForm();
+                } else if (formId === 'addChoiceForm') {
+                    resetChoiceForm();
+                }
             }
             
             // Handle different form types
@@ -681,6 +850,100 @@ async function submitForm(formId, url, method = 'POST') {
         }
     } catch (error) {
         alert('Error: ' + error.message);
+    }
+}
+
+// Reset Question Form (for Create & Add Another)
+function resetQuestionForm() {
+    const form = document.getElementById('addQuestionForm');
+    if (!form) return;
+    
+    // Preserve hidden values before reset
+    const subsectionId = document.getElementById('addQuestionSubsectionId').value;
+    const sectionId = document.getElementById('addQuestionSectionId').value;
+    const toSection = document.getElementById('addQuestionToSection').value;
+    
+    // Reset the form
+    form.reset();
+    
+    // Restore hidden values
+    document.getElementById('addQuestionSubsectionId').value = subsectionId;
+    document.getElementById('addQuestionSectionId').value = sectionId;
+    document.getElementById('addQuestionToSection').value = toSection;
+    
+    // Reset type dropdown to MCQ
+    const typeSelect = document.getElementById('addQuestionType');
+    if (typeSelect) {
+        typeSelect.value = 'MCQ';
+    }
+    
+    // Hide True/False options
+    const trueFalseOptions = document.getElementById('addQuestionTrueFalseOptions');
+    if (trueFalseOptions) {
+        trueFalseOptions.classList.add('hidden');
+    }
+    
+    // Reset correct_answer to False (default)
+    const correctAnswerSelect = trueFalseOptions ? trueFalseOptions.querySelector('select[name="correct_answer"]') : null;
+    if (correctAnswerSelect) {
+        correctAnswerSelect.value = 'False';
+    }
+    
+    // Clear any file inputs
+    const questionImageInput = form.querySelector('input[name="question_image"]');
+    if (questionImageInput) {
+        questionImageInput.value = '';
+    }
+    
+    // Clear textarea
+    const questionTextArea = form.querySelector('textarea[name="question_text"]');
+    if (questionTextArea) {
+        questionTextArea.value = '';
+    }
+    
+    // Clear order number
+    const orderNoInput = form.querySelector('input[name="order_no"]');
+    if (orderNoInput) {
+        orderNoInput.value = '';
+    }
+}
+
+// Reset Choice Form (for Create & Add Another)
+function resetChoiceForm() {
+    const form = document.getElementById('addChoiceForm');
+    if (!form) return;
+    
+    // Preserve hidden value before reset
+    const questionId = document.getElementById('addChoiceQuestionId').value;
+    
+    // Reset the form
+    form.reset();
+    
+    // Restore hidden value
+    document.getElementById('addChoiceQuestionId').value = questionId;
+    
+    // Clear choice text input
+    const choiceTextInput = form.querySelector('input[name="choice_text"]');
+    if (choiceTextInput) {
+        choiceTextInput.value = '';
+    }
+    
+    // Clear file input
+    const choiceImageInput = form.querySelector('input[name="choice_image"]');
+    if (choiceImageInput) {
+        choiceImageInput.value = '';
+    }
+    
+    // Uncheck is_correct checkbox
+    const isCorrectCheckbox = form.querySelector('input[name="is_correct"][type="checkbox"]');
+    if (isCorrectCheckbox) {
+        isCorrectCheckbox.checked = false;
+    }
+    
+    // Also ensure the hidden is_correct field is set to 0
+    const hiddenIsCorrect = form.querySelector('input[name="is_correct"][type="hidden"]');
+    if (hiddenIsCorrect) {
+        hiddenIsCorrect.value = '0';
     }
 }
 
@@ -741,6 +1004,35 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         const choiceId = document.getElementById('editChoiceId').value;
         submitForm('editChoiceForm', `${baseUrl}/choices/${choiceId}/update`);
+    });
+
+    // Create & Add Another buttons
+    document.getElementById('addQuestionCreateAndAddAnother').addEventListener('click', function(e) {
+        e.preventDefault();
+        const form = document.getElementById('addQuestionForm');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+        const toSection = document.getElementById('addQuestionToSection').value === '1';
+        if (toSection) {
+            const sectionId = document.getElementById('addQuestionSectionId').value;
+            submitForm('addQuestionForm', `${baseUrl}/sections/${sectionId}/questions/create`, 'POST', true);
+        } else {
+            const subsectionId = document.getElementById('addQuestionSubsectionId').value;
+            submitForm('addQuestionForm', `${baseUrl}/subsections/${subsectionId}/questions/create`, 'POST', true);
+        }
+    });
+
+    document.getElementById('addChoiceCreateAndAddAnother').addEventListener('click', function(e) {
+        e.preventDefault();
+        const form = document.getElementById('addChoiceForm');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+        const questionId = document.getElementById('addChoiceQuestionId').value;
+        submitForm('addChoiceForm', `${baseUrl}/questions/${questionId}/choices`, 'POST', true);
     });
 });
 </script>

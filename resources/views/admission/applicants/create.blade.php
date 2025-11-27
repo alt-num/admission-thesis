@@ -2,6 +2,10 @@
 
 @section('title', 'Register Applicant - ESSU Admission System')
 
+@push('head')
+<script src="/js/alpine.js" defer></script>
+@endpush
+
 @section('content')
 <div class="space-y-6">
     <div>
@@ -134,58 +138,29 @@
             <!-- Preferred Courses -->
             <div class="space-y-4">
                 <h3 class="text-lg font-medium text-gray-900">Preferred Courses</h3>
+                <p class="text-sm text-gray-600">Type to search for courses.</p>
                 
                 <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
-                    <div>
-                        <label for="preferred_course_1" class="block text-sm font-medium text-gray-700">First Choice</label>
-                        <select name="preferred_course_1" 
-                                id="preferred_course_1"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
-                            <option value="">Select Course</option>
-                            @foreach($courses as $course)
-                                <option value="{{ $course->course_id }}" {{ old('preferred_course_1') == $course->course_id ? 'selected' : '' }}>
-                                    {{ $course->course_name }} ({{ $course->course_code }})
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('preferred_course_1')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
+                    <x-searchable-course-dropdown 
+                        name="preferred_course_1" 
+                        label="First Choice" 
+                        :courses="$courses" 
+                        :selected="old('preferred_course_1')" 
+                        :error="$errors->first('preferred_course_1')" />
 
-                    <div>
-                        <label for="preferred_course_2" class="block text-sm font-medium text-gray-700">Second Choice</label>
-                        <select name="preferred_course_2" 
-                                id="preferred_course_2"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
-                            <option value="">Select Course</option>
-                            @foreach($courses as $course)
-                                <option value="{{ $course->course_id }}" {{ old('preferred_course_2') == $course->course_id ? 'selected' : '' }}>
-                                    {{ $course->course_name }} ({{ $course->course_code }})
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('preferred_course_2')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
+                    <x-searchable-course-dropdown 
+                        name="preferred_course_2" 
+                        label="Second Choice" 
+                        :courses="$courses" 
+                        :selected="old('preferred_course_2')" 
+                        :error="$errors->first('preferred_course_2')" />
 
-                    <div>
-                        <label for="preferred_course_3" class="block text-sm font-medium text-gray-700">Third Choice</label>
-                        <select name="preferred_course_3" 
-                                id="preferred_course_3"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
-                            <option value="">Select Course</option>
-                            @foreach($courses as $course)
-                                <option value="{{ $course->course_id }}" {{ old('preferred_course_3') == $course->course_id ? 'selected' : '' }}>
-                                    {{ $course->course_name }} ({{ $course->course_code }})
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('preferred_course_3')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
+                    <x-searchable-course-dropdown 
+                        name="preferred_course_3" 
+                        label="Third Choice" 
+                        :courses="$courses" 
+                        :selected="old('preferred_course_3')" 
+                        :error="$errors->first('preferred_course_3')" />
                 </div>
             </div>
 

@@ -22,6 +22,7 @@ class EmployeeController extends Controller
         }
 
         $search = $request->query('search');
+        $filter = $request->query('filter');
 
         $employees = Employee::with(['department', 'admissionUser'])
             ->when($search, function ($query) use ($search) {
@@ -33,6 +34,12 @@ class EmployeeController extends Controller
                           $deptQuery->where('department_name', 'ilike', "%{$search}%");
                       });
                 });
+            })
+            ->when($filter === 'has_account', function ($query) {
+                $query->whereHas('admissionUser');
+            })
+            ->when($filter === 'no_account', function ($query) {
+                $query->whereDoesntHave('admissionUser');
             })
             ->orderBy('last_name')
             ->orderBy('first_name')
@@ -178,10 +185,13 @@ class EmployeeController extends Controller
             return back()->with('error', 'Employee does not have a login account.');
         }
 
+        // Prevent admin from disabling their own account
+        if ($employee->admissionUser->admission_user_id === $user->admission_user_id) {
+            return back()->with('error', 'You cannot disable your own account.');
+        }
+
         try {
             // Toggle between active and disabled
-            // Note: account_status column must exist in admission_users table
-            // If it doesn't exist, add it manually: ALTER TABLE admission_users ADD COLUMN account_status VARCHAR(20) DEFAULT 'active';
             $currentStatus = $employee->admissionUser->account_status ?? 'active';
             $newStatus = $currentStatus === 'active' ? 'disabled' : 'active';
 

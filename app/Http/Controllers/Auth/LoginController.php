@@ -42,6 +42,47 @@ class LoginController extends Controller
             'password' => $request->password,
         ], $request->boolean('remember'))) {
             $request->session()->regenerate();
+            
+            // Check if profile is complete
+            $applicant = Auth::guard('applicant')->user()->applicant;
+            
+            // Check required profile fields
+            $requiredFields = [
+                'first_name', 'last_name', 'birth_date', 'place_of_birth', 'sex',
+                'civil_status', 'email', 'contact_number', 'barangay', 'municipality',
+                'province', 'last_school_attended', 'school_address', 'year_graduated',
+                'gen_average', 'preferred_course_1', 'preferred_course_2', 'preferred_course_3',
+            ];
+            
+            foreach ($requiredFields as $field) {
+                if (empty($applicant->$field)) {
+                    return redirect('/applicant/profile')->with('info', 'Please complete your profile to continue.');
+                }
+            }
+            
+            // Check if declaration is complete
+            $declaration = $applicant->declaration;
+            if (!$declaration) {
+                return redirect('/applicant/declaration')->with('info', 'Please complete your declaration to continue.');
+            }
+            
+            $requiredDeclarationFields = ['physical_condition_flag', 'disciplinary_action_flag', 'certified_signature_name', 'certified_date'];
+            foreach ($requiredDeclarationFields as $field) {
+                if (!isset($declaration->$field)) {
+                    return redirect('/applicant/declaration')->with('info', 'Please complete your declaration to continue.');
+                }
+            }
+            
+            // Check conditional fields
+            if ($declaration->physical_condition_flag && empty($declaration->physical_condition_desc)) {
+                return redirect('/applicant/declaration')->with('info', 'Please complete your declaration to continue.');
+            }
+            
+            if ($declaration->disciplinary_action_flag && empty($declaration->disciplinary_action_desc)) {
+                return redirect('/applicant/declaration')->with('info', 'Please complete your declaration to continue.');
+            }
+            
+            // Profile is complete, redirect to dashboard
             return redirect()->intended('/applicant/dashboard');
         }
 

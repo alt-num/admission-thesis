@@ -102,11 +102,39 @@ Route::middleware('auth:admission')->prefix('admission')->name('admission.')->gr
 
     // Settings
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+
+    // My Account
+    Route::get('/my-account', [\App\Http\Controllers\Admission\MyAccountController::class, 'edit'])->name('my-account.edit');
+    Route::post('/my-account', [\App\Http\Controllers\Admission\MyAccountController::class, 'update'])->name('my-account.update');
 });
 
-// Applicant dashboard (protected)
-Route::middleware('auth:applicant')->group(function () {
-    Route::get('/applicant/dashboard', function () {
-        return view('applicant.dashboard');
-    })->name('applicant.dashboard');
+// Applicant routes (protected)
+Route::middleware('auth:applicant')->prefix('applicant')->name('applicant.')->group(function () {
+    // Profile routes (NO middleware - must be accessible to complete profile)
+    Route::get('/profile', [\App\Http\Controllers\Applicant\ApplicantProfileController::class, 'edit'])->name('profile.edit');
+    Route::post('/profile', [\App\Http\Controllers\Applicant\ApplicantProfileController::class, 'update'])->name('profile.update');
+
+    // Declaration routes (NO middleware - must be accessible to complete declaration)
+    Route::get('/declaration', [\App\Http\Controllers\Applicant\ApplicantDeclarationController::class, 'edit'])->name('declaration.edit');
+    Route::post('/declaration', [\App\Http\Controllers\Applicant\ApplicantDeclarationController::class, 'update'])->name('declaration.update');
+
+    // Routes that require completed profile and declaration
+    Route::middleware('applicant.profile.complete')->group(function () {
+        // Dashboard
+        Route::get('/dashboard', [\App\Http\Controllers\Applicant\ApplicantDashboardController::class, 'index'])->name('dashboard');
+        
+        // Schedule
+        Route::get('/schedule', [\App\Http\Controllers\Applicant\ApplicantScheduleController::class, 'index'])->name('schedule');
+        
+        // Exam Access (start only - access logic moved to schedule page)
+        Route::post('/exam/start', [\App\Http\Controllers\Applicant\ApplicantExamAccessController::class, 'start'])->name('exam.start');
+        
+        // Exam Taking
+        Route::get('/exam/take', [\App\Http\Controllers\Applicant\ApplicantExamController::class, 'index'])->name('exam.take');
+        Route::post('/exam/answer', [\App\Http\Controllers\Applicant\ApplicantExamController::class, 'saveAnswer'])->name('exam.answer');
+        Route::post('/exam/finish', [\App\Http\Controllers\Applicant\ApplicantExamController::class, 'finishExam'])->name('exam.finish');
+        
+        // Exam Results
+        Route::get('/exam/results', [\App\Http\Controllers\Applicant\ApplicantExamResultController::class, 'index'])->name('exam.results');
+    });
 });
