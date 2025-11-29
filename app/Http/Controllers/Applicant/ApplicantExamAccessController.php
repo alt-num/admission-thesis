@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Applicant;
 
 use App\Http\Controllers\Controller;
+use App\Models\AntiCheatLog;
 use App\Models\ExamAttempt;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -111,6 +112,55 @@ class ApplicantExamAccessController extends Controller
     }
 
     /**
+     * Check if the provided exam code is valid (AJAX endpoint).
+     * Returns JSON: { valid: true/false }
+     */
+    public function checkCode(Request $request)
+    {
+        $applicantUser = auth()->guard('applicant')->user();
+        $applicant = $applicantUser->applicant;
+
+        // Get the assigned schedule
+        $assignedSchedule = $applicant->examSchedules()
+            ->with(['examSchedule.exam'])
+            ->latest()
+            ->first();
+
+        if (!$assignedSchedule) {
+            return response()->json(['valid' => false], 200);
+        }
+
+        $schedule = $assignedSchedule->examSchedule;
+
+        // Check if exam code is required
+        $examCodeRequired = \App\Services\AntiCheatSettingsService::getFeature('exam_code_required', true);
+        if (!$examCodeRequired || !$schedule->exam_code) {
+            return response()->json(['valid' => true], 200);
+        }
+
+        $providedCode = strtoupper(trim($request->input('exam_code', '')));
+        $storedCode = strtoupper(trim($schedule->exam_code));
+
+        $isValid = ($providedCode === $storedCode);
+
+        // Log invalid attempts
+        if (!$isValid && $providedCode) {
+            AntiCheatLog::create([
+                'applicant_id' => $applicant->applicant_id,
+                'event_type' => 'invalid_exam_code',
+                'event_details' => [
+                    'attempted_code' => $providedCode,
+                    'schedule_id' => $schedule->schedule_id,
+                    'timestamp' => now()->toISOString(),
+                ],
+                'event_timestamp' => now(),
+            ]);
+        }
+
+        return response()->json(['valid' => $isValid], 200);
+    }
+
+    /**
      * Start the exam by creating an exam attempt.
      */
     public function start(Request $request)
@@ -132,6 +182,30 @@ class ApplicantExamAccessController extends Controller
 
         $schedule = $assignedSchedule->examSchedule;
         $exam = $schedule->exam;
+
+        // Check if exam code is required and validate
+        $examCodeRequired = \App\Services\AntiCheatSettingsService::getFeature('exam_code_required', true);
+        if ($examCodeRequired && $schedule->exam_code) {
+            $providedCode = strtoupper(trim($request->exam_code));
+            $storedCode = strtoupper(trim($schedule->exam_code));
+
+            if ($providedCode !== $storedCode) {
+                // Log invalid exam code attempt (no exam_attempt_id - exam hasn't started yet)
+                AntiCheatLog::create([
+                    'applicant_id' => $applicant->applicant_id,
+                    'event_type' => 'invalid_exam_code',
+                    'event_details' => [
+                        'attempted_code' => $providedCode,
+                        'schedule_id' => $schedule->schedule_id,
+                        'timestamp' => now()->toISOString(),
+                    ],
+                    'event_timestamp' => now(),
+                ]);
+
+                // Silently redirect back - client-side validation should have caught this
+                return redirect()->route('applicant.schedule');
+            }
+        }
 
         // Check time window - all times treated as Asia/Manila (app timezone)
         $now = Carbon::now();
@@ -171,13 +245,28 @@ class ApplicantExamAccessController extends Controller
             }
         }
 
-        // Create exam attempt
+        // Create exam attempt with IP address
         $examAttempt = ExamAttempt::create([
             'exam_id' => $exam->exam_id,
             'applicant_id' => $applicant->applicant_id,
             'session_id' => Str::uuid()->toString(),
             'started_at' => now(),
+            'start_ip' => $request->ip(),
         ]);
+
+        // Log successful exam code verification
+        if ($schedule->exam_code) {
+            AntiCheatLog::create([
+                'applicant_id' => $applicant->applicant_id,
+                'exam_attempt_id' => $examAttempt->attempt_id,
+                'event_type' => 'exam_code_verified',
+                'event_details' => [
+                    'schedule_id' => $schedule->schedule_id,
+                    'timestamp' => now()->toISOString(),
+                ],
+                'event_timestamp' => now(),
+            ]);
+        }
 
         // Redirect to exam taking page
         return redirect()->route('applicant.exam.take')

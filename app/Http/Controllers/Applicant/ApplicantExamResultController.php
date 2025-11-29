@@ -48,29 +48,39 @@ class ApplicantExamResultController extends Controller
             ->with('question.subsection.section')
             ->get();
 
-        // Calculate subsection scores (correct/total/percentage)
+        // Get answers keyed by question_id for quick lookup
+        $answersByQuestionId = $answers->keyBy('question_id');
+
+        // Calculate subsection scores (dynamic - based on all questions in subsection)
         $subsectionScoresData = [];
         foreach ($sections as $section) {
             foreach ($section->subsections as $subsection) {
-                // Get answers for questions in this subsection
-                $subsectionAnswers = $answers->filter(function($answer) use ($subsection) {
-                    return $answer->question->subsection_id === $subsection->subsection_id;
-                });
+                // Total questions in this subsection (from database structure)
+                $totalQuestions = $subsection->questions->count();
                 
-                $correct = $subsectionAnswers->where('is_correct', true)->count();
-                $total = $subsectionAnswers->count();
-                $percentage = $total > 0 ? round(($correct / $total) * 100, 2) : 0;
+                // Get question IDs for this subsection
+                $questionIds = $subsection->questions->pluck('question_id')->toArray();
+                
+                // Count correct answers for questions in this subsection
+                $correctAnswers = 0;
+                foreach ($questionIds as $questionId) {
+                    if (isset($answersByQuestionId[$questionId]) && $answersByQuestionId[$questionId]->is_correct) {
+                        $correctAnswers++;
+                    }
+                }
+                
+                $percentage = $totalQuestions > 0 ? round(($correctAnswers / $totalQuestions) * 100, 2) : 0;
                 
                 $subsectionScoresData[$subsection->subsection_id] = [
                     'subsection' => $subsection,
-                    'correct' => $correct,
-                    'total' => $total,
+                    'correct' => $correctAnswers,
+                    'total' => $totalQuestions,
                     'percentage' => $percentage,
                 ];
             }
         }
 
-        // Calculate section scores (correct/total/percentage)
+        // Calculate section scores (dynamic - sum of all subsections in section)
         $sectionScoresData = [];
         foreach ($sections as $section) {
             $sectionCorrect = 0;
@@ -93,9 +103,23 @@ class ApplicantExamResultController extends Controller
             ];
         }
 
-        // Calculate overall score (correct/total/percentage)
-        $overallCorrect = $answers->where('is_correct', true)->count();
-        $overallTotal = $answers->count();
+        // Calculate overall score (dynamic - based on all questions in exam)
+        $overallCorrect = 0;
+        $overallTotal = 0;
+        
+        foreach ($sections as $section) {
+            foreach ($section->subsections as $subsection) {
+                $questionIds = $subsection->questions->pluck('question_id')->toArray();
+                $overallTotal += count($questionIds);
+                
+                foreach ($questionIds as $questionId) {
+                    if (isset($answersByQuestionId[$questionId]) && $answersByQuestionId[$questionId]->is_correct) {
+                        $overallCorrect++;
+                    }
+                }
+            }
+        }
+        
         $overallPercentage = $overallTotal > 0 ? round(($overallCorrect / $overallTotal) * 100, 2) : 0;
 
         // Get preferred courses
@@ -137,15 +161,15 @@ class ApplicantExamResultController extends Controller
                 continue;
             }
 
-            // Determine PASS/FAIL based on passing score
-            // Database constraint requires 'Pass' or 'Fail' (not 'PASS' or 'FAIL')
-            // If passing_score is NULL, course only requires taking the exam (auto-pass)
+            // Determine Qualified/NotQualified based on passing score
+            // Database constraint requires 'Qualified' or 'NotQualified'
+            // If passing_score is NULL, course only requires taking the exam (auto-qualify)
             if ($course->passing_score === null) {
-                $resultStatus = 'Pass';
+                $resultStatus = 'Qualified';
                 $passingScore = null; // No passing score requirement
             } else {
                 $passingScore = $course->passing_score;
-                $resultStatus = $attempt->score_total >= $passingScore ? 'Pass' : 'Fail';
+                $resultStatus = $attempt->score_total >= $passingScore ? 'Qualified' : 'NotQualified';
             }
 
             // Update or create course result (prevents duplicates via unique constraint)
@@ -176,17 +200,17 @@ class ApplicantExamResultController extends Controller
      */
     private function updateApplicantStatus($applicant, $courseResults)
     {
-        // Check if at least one course passed
+        // Check if at least one course qualified
         $hasPassed = false;
         foreach ($courseResults as $result) {
-            if ($result['status'] === 'Pass') {
+            if ($result['status'] === 'Qualified') {
                 $hasPassed = true;
                 break;
             }
         }
 
         // Update applicant status
-        $newStatus = $hasPassed ? 'Passed' : 'Failed';
+        $newStatus = $hasPassed ? 'Qualified' : 'NotQualified';
         
         if ($applicant->status !== $newStatus) {
             $applicant->status = $newStatus;

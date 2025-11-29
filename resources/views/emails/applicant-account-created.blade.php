@@ -3,8 +3,9 @@ Dear {{ $fullName }},
 Your ESSU Admission account has been successfully created.
 
 ACCOUNT DETAILS:
+- Applicant Reference Number: {{ $appRefNo ?? $applicant->app_ref_no ?? 'N/A' }}
 - Username: {{ $username }}
-- Temporary Password: {{ $temporaryPassword }}
+- Password: {{ $temporaryPassword }}
 - Campus: {{ $campusName }}
 
 IMPORTANT REMINDER:

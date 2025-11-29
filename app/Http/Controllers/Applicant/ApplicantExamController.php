@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Applicant;
 
 use App\Http\Controllers\Controller;
+use App\Models\ApplicantCourseResult;
+use App\Models\AntiCheatLog;
+use App\Models\AntiCheatSetting;
 use App\Models\ExamAnswer;
 use App\Models\ExamAttempt;
 use App\Models\ExamSubsectionScore;
@@ -28,11 +31,22 @@ class ApplicantExamController extends Controller
             ->first();
 
         if (!$attempt) {
+            // Check if already finished
+            $finishedAttempt = ExamAttempt::where('applicant_id', $applicant->applicant_id)
+                ->whereNotNull('finished_at')
+                ->latest()
+                ->first();
+            
+            if ($finishedAttempt) {
+                return redirect()->route('applicant.exam.results')
+                    ->with('info', 'You have already completed this exam. View your results below.');
+            }
+            
             return redirect()->route('applicant.schedule')
                 ->with('error', 'No active exam attempt found.');
         }
 
-        // Check if already finished - redirect to results page
+        // Double-check if already finished (race condition protection)
         if ($attempt->finished_at) {
             return redirect()->route('applicant.exam.results')
                 ->with('info', 'You have already completed this exam. View your results below.');
@@ -99,6 +113,18 @@ class ApplicantExamController extends Controller
             ->get()
             ->keyBy('question_id');
 
+        // Check IP address consistency when loading exam page
+        $this->checkIpAddress(request(), $attempt, $applicant);
+
+        // Check if anti-cheat is enabled for this schedule
+        $antiCheatEnabled = \App\Services\AntiCheatSettingsService::isEnabled();
+        if ($antiCheatEnabled && isset($schedule->anti_cheat_enabled)) {
+            $antiCheatEnabled = $schedule->anti_cheat_enabled;
+        }
+
+        // Get anti-cheat settings for banner display
+        $settings = AntiCheatSetting::current();
+
         return view('applicant.exam_take', compact(
             'exam',
             'attempt',
@@ -106,7 +132,9 @@ class ApplicantExamController extends Controller
             'remainingSeconds',
             'existingAnswers',
             'schedule',
-            'endDateTime'
+            'endDateTime',
+            'antiCheatEnabled',
+            'settings'
         ));
     }
 
@@ -134,10 +162,17 @@ class ApplicantExamController extends Controller
             return response()->json(['success' => false, 'message' => 'Invalid attempt'], 403);
         }
 
-        // Check if already finished
+        // Check if already finished - STRICT enforcement
         if ($attempt->finished_at) {
-            return response()->json(['success' => false, 'message' => 'Exam already finished'], 403);
+            return response()->json([
+                'success' => false, 
+                'message' => 'Exam already finished. No further changes allowed.',
+                'exam_finished' => true
+            ], 403);
         }
+
+        // Check IP address consistency
+        $this->checkIpAddress($request, $attempt, $applicant);
 
         // Determine if answer is correct
         $isCorrect = false;
@@ -184,8 +219,24 @@ class ApplicantExamController extends Controller
                 ->first();
             
             if ($finishedAttempt) {
+                // Return JSON for AJAX requests, redirect for form submissions
+                if ($request->wantsJson() || $request->expectsJson()) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Exam already completed',
+                        'redirect' => route('applicant.exam.results')
+                    ]);
+                }
+                
                 return redirect()->route('applicant.exam.results')
                     ->with('info', 'Your exam has already been completed.');
+            }
+            
+            if ($request->wantsJson() || $request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No active exam attempt found.'
+                ], 404);
             }
             
             return redirect()->route('applicant.dashboard')
@@ -201,52 +252,215 @@ class ApplicantExamController extends Controller
         // Save attempt with all calculated scores
         $attempt->save();
 
+        // Evaluate course results and update applicant status
+        $this->evaluateCourseResultsAndUpdateStatus($applicant, $attempt);
+
+        // Return JSON for AJAX requests, redirect for form submissions
+        if ($request->wantsJson() || $request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Exam submitted successfully',
+                'redirect' => route('applicant.exam.results')
+            ]);
+        }
+
         return redirect()->route('applicant.exam.results')
             ->with('success', 'Exam submitted successfully!');
     }
 
     /**
      * Calculate and save exam scores.
+     * Fully dynamic - based on exam structure, not just answered questions.
      */
     private function calculateScores(ExamAttempt $attempt)
     {
-        // Get all answers for this attempt
-        $answers = ExamAnswer::where('attempt_id', $attempt->attempt_id)
-            ->with('question.subsection')
-            ->get();
+        // Load exam with all sections, subsections, and questions
+        $exam = $attempt->exam()->with([
+            'sections.subsections.questions' => function($query) {
+                $query->orderBy('order_no');
+            }
+        ])->first();
 
-        // Calculate total score
-        $totalCorrect = $answers->where('is_correct', true)->count();
-        $totalQuestions = $answers->count();
-        $scoreTotal = $totalQuestions > 0 ? ($totalCorrect / $totalQuestions) * 100 : 0;
-
-        $attempt->score_total = round($scoreTotal, 2);
-
-        // Calculate subsection scores
-        $subsectionGroups = $answers->groupBy(function ($answer) {
-            return $answer->question->subsection_id;
-        });
-
-        foreach ($subsectionGroups as $subsectionId => $subsectionAnswers) {
-            $correct = $subsectionAnswers->where('is_correct', true)->count();
-            $total = $subsectionAnswers->count();
-            $score = $total > 0 ? ($correct / $total) * 100 : 0;
-
-            ExamSubsectionScore::updateOrCreate(
-                [
-                    'attempt_id' => $attempt->attempt_id,
-                    'subsection_id' => $subsectionId,
-                ],
-                [
-                    'score' => round($score, 2),
-                ]
-            );
+        if (!$exam) {
+            return;
         }
+
+        // Get all answers for this attempt, keyed by question_id for quick lookup
+        $answers = ExamAnswer::where('attempt_id', $attempt->attempt_id)
+            ->get()
+            ->keyBy('question_id');
+
+        // Calculate subsection scores (dynamic - based on all questions in subsection)
+        foreach ($exam->sections as $section) {
+            foreach ($section->subsections as $subsection) {
+                // Total questions in this subsection (from database structure)
+                $totalQuestions = $subsection->questions->count();
+                
+                // Get question IDs for this subsection
+                $questionIds = $subsection->questions->pluck('question_id')->toArray();
+                
+                // Count correct answers for questions in this subsection
+                $correctAnswers = 0;
+                foreach ($questionIds as $questionId) {
+                    if (isset($answers[$questionId]) && $answers[$questionId]->is_correct) {
+                        $correctAnswers++;
+                    }
+                }
+                
+                // Calculate percentage score
+                $score = $totalQuestions > 0 ? ($correctAnswers / $totalQuestions) * 100 : 0;
+
+                // Save subsection score
+                ExamSubsectionScore::updateOrCreate(
+                    [
+                        'attempt_id' => $attempt->attempt_id,
+                        'subsection_id' => $subsection->subsection_id,
+                    ],
+                    [
+                        'score' => round($score, 2),
+                    ]
+                );
+            }
+        }
+
+        // Calculate overall exam score (dynamic - based on all questions in exam)
+        $totalQuestions = 0;
+        $totalCorrect = 0;
+        
+        foreach ($exam->sections as $section) {
+            foreach ($section->subsections as $subsection) {
+                $questionIds = $subsection->questions->pluck('question_id')->toArray();
+                $totalQuestions += count($questionIds);
+                
+                foreach ($questionIds as $questionId) {
+                    if (isset($answers[$questionId]) && $answers[$questionId]->is_correct) {
+                        $totalCorrect++;
+                    }
+                }
+            }
+        }
+        
+        $scoreTotal = $totalQuestions > 0 ? ($totalCorrect / $totalQuestions) * 100 : 0;
+        $attempt->score_total = round($scoreTotal, 2);
 
         // Calculate verbal/nonverbal if subsections have types
         // This is a placeholder - implement based on your subsection types
         $attempt->score_verbal = $scoreTotal; // Placeholder
         $attempt->score_nonverbal = $scoreTotal; // Placeholder
+        
+        $attempt->save();
+    }
+
+    /**
+     * Evaluate course results and update applicant status.
+     */
+    private function evaluateCourseResultsAndUpdateStatus($applicant, ExamAttempt $attempt)
+    {
+        // Get preferred courses
+        $preferredCourses = [
+            1 => $applicant->preferredCourse1,
+            2 => $applicant->preferredCourse2,
+            3 => $applicant->preferredCourse3,
+        ];
+
+        $hasQualified = false;
+
+        // Evaluate each preferred course
+        foreach ($preferredCourses as $priority => $course) {
+            if (!$course) {
+                continue;
+            }
+
+            // Determine Qualified/NotQualified based on passing score
+            // Database constraint requires 'Qualified' or 'NotQualified'
+            // If passing_score is NULL, course only requires taking the exam (auto-qualify)
+            if ($course->passing_score === null) {
+                $resultStatus = 'Qualified';
+                $passingScore = null; // No passing score requirement
+            } else {
+                $passingScore = $course->passing_score;
+                $resultStatus = $attempt->score_total >= $passingScore ? 'Qualified' : 'NotQualified';
+            }
+
+            // Update or create course result (prevents duplicates via unique constraint)
+            ApplicantCourseResult::updateOrCreate(
+                [
+                    'applicant_id' => $applicant->applicant_id,
+                    'course_id' => $course->course_id,
+                ],
+                [
+                    'result_status' => $resultStatus,
+                    'score_value' => $attempt->score_total,
+                ]
+            );
+
+            // Check if this course qualifies the applicant
+            if ($resultStatus === 'Qualified') {
+                $hasQualified = true;
+            }
+        }
+
+        // Update applicant status based on qualification
+        // If meets minimum for ANY course → Qualified
+        // If meets NONE → NotQualified
+        $newStatus = $hasQualified ? 'Qualified' : 'NotQualified';
+        
+        if ($applicant->status !== $newStatus) {
+            $applicant->status = $newStatus;
+            $applicant->save();
+        }
+    }
+
+    /**
+     * Check IP address consistency and log if changed.
+     */
+    private function checkIpAddress(Request $request, ExamAttempt $attempt, $applicant)
+    {
+        // Skip if IP logging is disabled
+        if (!\App\Services\AntiCheatSettingsService::getFeature('ip_change_logging', true)) {
+            return;
+        }
+
+        // Skip if anti-cheat is disabled
+        if (!\App\Services\AntiCheatSettingsService::isEnabled()) {
+            return;
+        }
+
+        // Skip if no start IP was recorded (for backward compatibility)
+        if (!$attempt->start_ip) {
+            return;
+        }
+
+        $currentIp = $request->ip();
+        $startIp = $attempt->start_ip;
+
+        // Check if IP has changed
+        if ($currentIp !== $startIp) {
+            // Mark attempt as having IP inconsistency
+            if (!$attempt->ip_changed) {
+                $attempt->ip_changed = true;
+                $attempt->save();
+            }
+
+            // Log IP change event based on strictness setting
+            $strictness = \App\Services\AntiCheatSettingsService::getIpCheckStrictness();
+
+            if ($strictness === 'log_only') {
+                // Log the IP change event
+                AntiCheatLog::create([
+                    'applicant_id' => $applicant->applicant_id,
+                    'exam_attempt_id' => $attempt->attempt_id,
+                    'event_type' => 'ip_changed',
+                    'event_details' => [
+                        'start_ip' => $startIp,
+                        'current_ip' => $currentIp,
+                        'timestamp' => now()->toISOString(),
+                    ],
+                    'event_timestamp' => now(),
+                ]);
+            }
+            // Future: Handle 'warn' and 'block' strictness modes
+        }
     }
 }
 

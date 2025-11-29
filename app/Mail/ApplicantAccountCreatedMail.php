@@ -53,6 +53,7 @@ class ApplicantAccountCreatedMail extends Mailable
                 'username' => $this->username,
                 'temporaryPassword' => $this->temporaryPassword,
                 'campusName' => $this->campusName,
+                'appRefNo' => $this->applicant->app_ref_no,
             ],
         );
     }

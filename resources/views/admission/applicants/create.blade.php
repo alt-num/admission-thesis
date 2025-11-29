@@ -4,6 +4,16 @@
 
 @push('head')
 <script src="/js/alpine.js" defer></script>
+<script>
+    // Campus data for JavaScript
+    const campuses = @json($campuses->mapWithKeys(function($campus) {
+        return [$campus->campus_id => [
+            'city_code' => $campus->city_code,
+            'campus_name' => $campus->campus_name
+        ]];
+    }));
+    const currentYear = {{ date('y') }};
+</script>
 @endpush
 
 @section('content')
@@ -56,6 +66,36 @@
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
                 </div>
+            </div>
+
+            <!-- Application Number (Auto-Formatted) -->
+            <div>
+                <label for="app_number" class="block text-sm font-medium text-gray-700">Application Number *</label>
+                <div class="mt-1">
+                    <input type="number" 
+                           name="app_number" 
+                           id="app_number" 
+                           value="{{ old('app_number') }}"
+                           min="1"
+                           max="99999"
+                           required
+                           class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                           placeholder="Enter number (1-99999)">
+                    <!-- Live Preview -->
+                    <div id="app_ref_preview" class="mt-2 p-2 bg-gray-50 border border-gray-200 rounded-md">
+                        <p class="text-xs text-gray-500 mb-1">Preview:</p>
+                        <p class="text-sm font-mono font-semibold text-gray-900" id="preview_text">Select campus and enter number</p>
+                    </div>
+                    <!-- Hidden field for formatted reference number (server-side generated) -->
+                    <input type="hidden" name="app_ref_no" id="app_ref_no_hidden" value="">
+                </div>
+                <p class="mt-1 text-xs text-gray-500">Enter only the number part (1-99999). The full reference number will be auto-generated.</p>
+                @error('app_number')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+                @error('app_ref_no')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                @enderror
             </div>
 
             <!-- Email -->
@@ -120,6 +160,9 @@
                                 {{ $schedule->schedule_date->format('M d, Y') }} — 
                                 {{ \Carbon\Carbon::parse($schedule->start_time)->format('g:i A') }} to 
                                 {{ \Carbon\Carbon::parse($schedule->end_time)->format('g:i A') }}
+                                @if($schedule->location)
+                                    — {{ $schedule->location }}
+                                @endif
                                 @if($schedule->capacity)
                                     ({{ $schedule->capacity }} slots)
                                 @endif
@@ -167,7 +210,7 @@
             <!-- Info Note -->
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p class="text-sm text-blue-800">
-                    <strong>Note:</strong> You can leave the preferred courses blank on creation. The username and password will be generated from the application reference number.
+                    <strong>Note:</strong> You can leave the preferred courses blank on creation. The username and password will be automatically generated from the formatted application reference number.
                 </p>
             </div>
 
@@ -185,5 +228,57 @@
         </form>
     </div>
 </div>
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const campusSelect = document.getElementById('campus_id');
+        const appNumberInput = document.getElementById('app_number');
+        const previewText = document.getElementById('preview_text');
+        const hiddenRefNo = document.getElementById('app_ref_no_hidden');
+
+        function updatePreview() {
+            const campusId = campusSelect.value;
+            const appNumber = appNumberInput.value.trim();
+
+            if (!campusId || !appNumber) {
+                previewText.textContent = 'Select campus and enter number';
+                hiddenRefNo.value = '';
+                return;
+            }
+
+            const campus = campuses[campusId];
+            if (!campus) {
+                previewText.textContent = 'Invalid campus selected';
+                hiddenRefNo.value = '';
+                return;
+            }
+
+            // Validate number
+            const num = parseInt(appNumber);
+            if (isNaN(num) || num < 1 || num > 99999) {
+                previewText.textContent = 'Enter a number between 1 and 99999';
+                hiddenRefNo.value = '';
+                return;
+            }
+
+            // Format: CITYCODE-YYNNNNN (5 digits padded)
+            const cityCode = campus.city_code;
+            const year = currentYear.toString();
+            const paddedNumber = String(num).padStart(5, '0');
+            const formattedRefNo = `${cityCode}-${year}${paddedNumber}`;
+
+            previewText.textContent = formattedRefNo;
+            hiddenRefNo.value = formattedRefNo;
+        }
+
+        campusSelect.addEventListener('change', updatePreview);
+        appNumberInput.addEventListener('input', updatePreview);
+        
+        // Initial preview update
+        updatePreview();
+    });
+</script>
+@endpush
 @endsection
 

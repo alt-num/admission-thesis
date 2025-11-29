@@ -12,17 +12,15 @@ class AdmissionDashboardController extends Controller
     {
         $totalApplicants = Applicant::count();
         $pendingApplicants = Applicant::where('status', 'Pending')->count();
-        $examTakenApplicants = Applicant::where('status', 'ExamTaken')->count();
-        $passedApplicants = Applicant::where('status', 'Passed')->count();
-        $failedApplicants = Applicant::where('status', 'Failed')->count();
+        $qualifiedApplicants = Applicant::where('status', 'Qualified')->count();
+        $notQualifiedApplicants = Applicant::where('status', 'NotQualified')->count();
         $totalExams = Exam::count();
 
         return view('admission.dashboard', compact(
             'totalApplicants',
             'pendingApplicants',
-            'examTakenApplicants',
-            'passedApplicants',
-            'failedApplicants',
+            'qualifiedApplicants',
+            'notQualifiedApplicants',
             'totalExams'
         ));
     }

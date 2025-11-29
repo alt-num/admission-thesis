@@ -70,6 +70,11 @@ class Applicant extends Model
         return $this->hasMany(ApplicantExamSchedule::class, 'applicant_id', 'applicant_id');
     }
 
+    public function antiCheatLogs(): HasMany
+    {
+        return $this->hasMany(AntiCheatLog::class, 'applicant_id', 'applicant_id');
+    }
+
     /**
      * Generate a unique application reference number.
      * Format: <city_code>-<year><sequence>

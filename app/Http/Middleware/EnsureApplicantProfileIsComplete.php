@@ -47,7 +47,7 @@ class EnsureApplicantProfileIsComplete
 
         foreach ($requiredFields as $field) {
             if (empty($applicant->$field)) {
-                return redirect()->route('applicant.profile.edit')
+                return redirect()->route('applicant.profile.show')
                     ->with('warning', 'Please complete your profile before proceeding.');
             }
         }

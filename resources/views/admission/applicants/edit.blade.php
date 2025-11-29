@@ -64,6 +64,16 @@
 
                 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 mt-6">
                     <div>
+                        <label for="app_ref_no" class="block text-sm font-medium text-gray-700">Applicant Reference Number</label>
+                        <input type="text" 
+                               id="app_ref_no" 
+                               value="{{ $applicant->app_ref_no }}"
+                               disabled
+                               readonly
+                               class="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 text-gray-500 shadow-sm sm:text-sm font-mono cursor-not-allowed">
+                        <p class="mt-1 text-xs text-gray-500">Reference number cannot be changed after creation.</p>
+                    </div>
+                    <div>
                         <label for="email" class="block text-sm font-medium text-gray-700">Email *</label>
                         <input type="email" 
                                name="email" 
@@ -120,11 +130,7 @@
             <!-- Read-Only System Fields -->
             <div class="border-b border-gray-200 pb-4 mb-6">
                 <h2 class="text-lg font-semibold text-gray-900 mb-4">System Information (Read-Only)</h2>
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-3 text-sm">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-600">Application Reference</label>
-                        <p class="mt-1 text-gray-900 font-mono">{{ $applicant->app_ref_no }}</p>
-                    </div>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 text-sm">
                     <div>
                         <label class="block text-sm font-medium text-gray-600">Campus</label>
                         <p class="mt-1 text-gray-900">{{ $applicant->campus->campus_name }}</p>
@@ -149,13 +155,6 @@
                                class="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Application Reference Number</label>
-                        <input type="text" 
-                               value="{{ $applicant->app_ref_no }}" 
-                               disabled
-                               class="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 text-gray-500 font-mono sm:text-sm">
-                    </div>
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Birth Date</label>

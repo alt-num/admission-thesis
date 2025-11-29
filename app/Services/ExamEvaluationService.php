@@ -41,13 +41,13 @@ class ExamEvaluationService
                 $passingScore = $course->passing_score;
 
                 // Determine result status
-                // If passing_score is null → result = 'Pass' (no minimum requirement)
+                // If passing_score is null → result = 'Qualified' (no minimum requirement)
                 if ($passingScore === null) {
-                    $resultStatus = 'Pass';
+                    $resultStatus = 'Qualified';
                 } elseif ($scorePercentage >= $passingScore) {
-                    $resultStatus = 'Pass';
+                    $resultStatus = 'Qualified';
                 } else {
-                    $resultStatus = 'Fail';
+                    $resultStatus = 'NotQualified';
                 }
 
                 // Check if result already exists for this applicant and course
@@ -72,9 +72,9 @@ class ExamEvaluationService
                 }
             }
 
-            // Update applicant status to 'ExamTaken'
+            // Update applicant status to 'Pending' (exam taken, awaiting evaluation)
             $applicant->update([
-                'status' => 'ExamTaken',
+                'status' => 'Pending',
             ]);
         });
     }

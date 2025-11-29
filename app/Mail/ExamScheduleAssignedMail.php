@@ -49,6 +49,8 @@ class ExamScheduleAssignedMail extends Mailable
                 'startTime' => \Carbon\Carbon::parse($this->schedule->start_time)->format('g:i A'),
                 'endTime' => \Carbon\Carbon::parse($this->schedule->end_time)->format('g:i A'),
                 'campusName' => $this->campusName,
+                'appRefNo' => $this->applicant->app_ref_no,
+                'location' => $this->schedule->location ?? 'TBA',
             ],
         );
     }

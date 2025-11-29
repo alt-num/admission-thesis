@@ -73,12 +73,10 @@
                     <p class="text-lg font-semibold text-gray-900">{{ $endTimePh->format('g:i A') }}</p>
                 </div>
 
-                @if($assignedSchedule->examSchedule->location)
                 <div class="bg-gray-50 rounded-lg p-4 md:col-span-2">
                     <label class="block text-sm font-medium text-gray-600 mb-1">Location</label>
-                    <p class="text-lg font-semibold text-gray-900">{{ $assignedSchedule->examSchedule->location }}</p>
+                    <p class="text-lg font-semibold text-gray-900">{{ $assignedSchedule->examSchedule->location ?? 'TBA' }}</p>
                 </div>
-                @endif
             </div>
 
             <!-- Exam Status Section -->
@@ -168,17 +166,53 @@
                                 <div class="ml-3">
                                     <h4 class="text-sm font-medium text-blue-800 mb-2">Before You Start:</h4>
                                     <ul class="text-sm text-blue-700 space-y-1">
-                                        <li>• Do not refresh or close the browser during the exam</li>
-                                        <li>• Answer all questions to the best of your ability</li>
-                                        <li>• Submit your exam before the end time</li>
+                                        <li>• Please keep the exam window active at all times.</li>
+                                        <li>• Switching to other tabs or applications may affect your exam.</li>
+                                        <li>• Unintentional page refreshes caused by network issues are allowed.</li>
+                                        <li>• The system will notify you if any restricted action occurs.</li>
+                                        <li>• Ensure you submit all answers before the scheduled end time.</li>
                                     </ul>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Start Exam Form -->
-                        <form method="POST" action="{{ route('applicant.exam.start') }}">
+                        <!-- Exam Info Panel -->
+                        <div class="bg-white border-2 border-gray-300 rounded-lg p-6 max-w-md mx-auto mb-6 space-y-3">
+                            <div class="text-center border-b border-gray-200 pb-3">
+                                <p class="text-sm text-gray-600 mb-1">Date & Time</p>
+                                <p class="text-base font-semibold text-gray-900">{{ $assignedSchedule->examSchedule->schedule_date->format('F d, Y') }}</p>
+                                <p class="text-sm text-gray-600">{{ $startTimePh->format('g:i A') }} - {{ $endTimePh->format('g:i A') }}</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-sm text-gray-600 mb-1">Location</p>
+                                <p class="text-base font-semibold text-gray-900">{{ $assignedSchedule->examSchedule->location ?? 'TBA' }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Exam Code Input Form -->
+                        <form method="POST" action="{{ route('applicant.exam.start') }}" id="examStartForm">
                             @csrf
+                            @php
+                                $examCodeRequired = \App\Services\AntiCheatSettingsService::getFeature('exam_code_required', true);
+                            @endphp
+                            @if($examCodeRequired && $assignedSchedule->examSchedule->exam_code)
+                            <div class="bg-white border-2 border-gray-300 rounded-lg p-6 max-w-md mx-auto mb-6">
+                                <label for="exam_code" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Enter the Exam Code provided by the proctor:
+                                </label>
+                                <input type="text" 
+                                       id="exam_code" 
+                                       name="exam_code" 
+                                       required
+                                       minlength="4"
+                                       maxlength="5"
+                                       pattern="[A-Z0-9]{4,5}"
+                                       placeholder="XXXX"
+                                       class="w-full px-4 py-3 text-center text-2xl font-bold tracking-widest border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 uppercase"
+                                       style="letter-spacing: 0.5em;"
+                                       autocomplete="off">
+                            </div>
+                            @endif
                             <button type="submit" 
                                     class="inline-flex items-center px-8 py-4 bg-green-600 text-white text-lg font-semibold rounded-lg hover:bg-green-700 transition-colors shadow-lg">
                                 <svg class="h-6 w-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -188,6 +222,73 @@
                                 Start Exam
                             </button>
                         </form>
+                        @if($assignedSchedule->examSchedule->exam_code)
+                        <script>
+                            (function() {
+                                const examCodeInput = document.getElementById('exam_code');
+                                const examStartForm = document.getElementById('examStartForm');
+                                
+                                if (!examCodeInput || !examStartForm) return;
+                                
+                                // Auto-uppercase and limit input
+                                examCodeInput.addEventListener('input', function(e) {
+                                    this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                                    // Clear any custom validity when user types
+                                    this.setCustomValidity('');
+                                });
+                                
+                                // Validate exam code on form submission
+                                examStartForm.addEventListener('submit', async function(e) {
+                                    // Let browser handle pattern validation first
+                                    if (!examCodeInput.validity.valid) {
+                                        // Browser will show its native pattern bubble
+                                        return;
+                                    }
+                                    
+                                    // Pattern is valid, now check the actual code
+                                    const examCode = examCodeInput.value.trim();
+                                    
+                                    if (examCode.length >= 4) {
+                                        // Prevent default submission
+                                        e.preventDefault();
+                                        
+                                        try {
+                                            // Check code via AJAX
+                                            const formData = new FormData();
+                                            formData.append('exam_code', examCode);
+                                            formData.append('_token', '{{ csrf_token() }}');
+                                            
+                                            const response = await fetch('{{ route('applicant.exam.check-code') }}', {
+                                                method: 'POST',
+                                                body: formData,
+                                                headers: {
+                                                    'Accept': 'application/json',
+                                                    'X-Requested-With': 'XMLHttpRequest'
+                                                }
+                                            });
+                                            
+                                            const data = await response.json();
+                                            
+                                            if (data.valid === true) {
+                                                // Code is valid - clear custom validity and submit form
+                                                examCodeInput.setCustomValidity('');
+                                                examStartForm.submit();
+                                            } else {
+                                                // Code is invalid - show browser-native bubble
+                                                examCodeInput.setCustomValidity('Incorrect exam code.');
+                                                examCodeInput.reportValidity();
+                                            }
+                                        } catch (error) {
+                                            console.error('Error checking exam code:', error);
+                                            // On error, allow form to submit normally
+                                            examCodeInput.setCustomValidity('');
+                                            examStartForm.submit();
+                                        }
+                                    }
+                                });
+                            })();
+                        </script>
+                        @endif
                     </div>
                 @endif
             </div>

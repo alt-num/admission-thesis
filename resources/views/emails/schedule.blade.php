@@ -3,10 +3,12 @@ Dear Applicant,
 You have been scheduled for the following exam:
 
 EXAM DETAILS:
+- Applicant Reference Number: {{ $appRefNo }}
 - Exam: {{ $examTitle }}
 - Date: {{ $scheduleDate }}
 - Start Time: {{ $startTime }}
 - End Time: {{ $endTime }}
+- Location: {{ $location }}
 - Campus: {{ $campusName }}
 
 IMPORTANT REMINDER:

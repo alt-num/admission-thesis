@@ -4,12 +4,29 @@ namespace App\Http\Controllers\Applicant;
 
 use App\Http\Controllers\Controller;
 use App\Models\Course;
+use App\Models\ApplicantUser;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 
 class ApplicantProfileController extends Controller
 {
     /**
-     * Show the form for editing the applicant's profile.
+     * Show the profile completion page (official "Complete Your Applicant Information" screen).
+     */
+    public function show()
+    {
+        $applicantUser = auth()->guard('applicant')->user();
+        $applicant = $applicantUser->applicant;
+
+        // Load all courses for the preferred course dropdowns
+        $courses = Course::orderBy('course_name')->get();
+
+        return view('applicant.profile', compact('applicant', 'courses'));
+    }
+
+    /**
+     * Show the form for completing the applicant's profile (initial setup).
      */
     public function edit()
     {
@@ -23,7 +40,7 @@ class ApplicantProfileController extends Controller
     }
 
     /**
-     * Update the applicant's profile.
+     * Update the applicant's profile (initial completion).
      */
     public function update(Request $request)
     {
@@ -57,6 +74,63 @@ class ApplicantProfileController extends Controller
         $applicant->update($validated);
 
         return redirect()->route('applicant.declaration.edit')->with('success', 'Profile updated successfully. Please complete your declaration.');
+    }
+
+    /**
+     * Show the form for editing limited profile fields (username, password, email, mobile).
+     */
+    public function editProfile()
+    {
+        $applicantUser = auth()->guard('applicant')->user();
+        $applicant = $applicantUser->applicant->load([
+            'preferredCourse1',
+            'preferredCourse2',
+            'preferredCourse3'
+        ]);
+
+        return view('applicant.profile_edit', compact('applicantUser', 'applicant'));
+    }
+
+    /**
+     * Update limited profile fields (username, password, email, mobile).
+     */
+    public function updateProfile(Request $request)
+    {
+        $applicantUser = auth()->guard('applicant')->user();
+        $applicant = $applicantUser->applicant;
+
+        // Validation rules
+        $validated = $request->validate([
+            'username' => [
+                'required',
+                'string',
+                'min:3',
+                Rule::unique('applicant_users', 'username')->ignore($applicantUser->user_id, 'user_id'),
+            ],
+            'email' => [
+                'required',
+                'email',
+                Rule::unique('applicants', 'email')->ignore($applicant->applicant_id, 'applicant_id'),
+            ],
+            'contact_number' => 'required|string|max:32',
+            'password' => 'nullable|min:6|confirmed',
+        ]);
+
+        // Update applicant_user (username and password)
+        $applicantUser->username = $validated['username'];
+        if (!empty($validated['password'])) {
+            $applicantUser->password = Hash::make($validated['password']);
+        }
+        $applicantUser->save();
+
+        // Update applicant (email and contact_number)
+        $applicant->email = $validated['email'];
+        $applicant->contact_number = $validated['contact_number'];
+        $applicant->save();
+
+        return redirect()
+            ->route('applicant.profile.edit')
+            ->with('success', 'Profile updated successfully!');
     }
 }
 

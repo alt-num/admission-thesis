@@ -17,6 +17,7 @@ class ExamSchedule extends Model
 
     protected $casts = [
         'schedule_date' => 'date',
+        'anti_cheat_enabled' => 'boolean',
     ];
 
     public function exam(): BelongsTo

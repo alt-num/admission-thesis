@@ -4,6 +4,24 @@
 
 @section('content')
 <div class="space-y-6">
+    @if(session('success'))
+        <div class="p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+            {{ session('success') }}
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+            {{ session('error') }}
+        </div>
+    @endif
+
+    @if(session('warning'))
+        <div class="p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-lg">
+            {{ session('warning') }}
+        </div>
+    @endif
+
     <!-- Header -->
     <div class="flex items-center justify-between">
         <div>
@@ -22,6 +40,14 @@
                         Send Login Credentials
                     </button>
                 </form>
+                <button type="button" 
+                        onclick="openResetModal()"
+                        class="inline-flex items-center px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition-colors">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Reset Username & Password
+                </button>
             @endif
             @if($applicant->examSchedules->isNotEmpty())
                 <form method="POST" action="{{ route('admission.applicants.send-schedule', $applicant) }}" class="inline">
@@ -154,9 +180,8 @@
                         @php
                             $statusColors = [
                                 'Pending' => 'bg-yellow-100 text-yellow-800',
-                                'ExamTaken' => 'bg-purple-100 text-purple-800',
-                                'Passed' => 'bg-green-100 text-green-800',
-                                'Failed' => 'bg-red-100 text-red-800',
+                                'Qualified' => 'bg-green-100 text-green-800',
+                                'NotQualified' => 'bg-red-100 text-red-800',
                             ];
                             $color = $statusColors[$applicant->status] ?? 'bg-gray-100 text-gray-800';
                         @endphp
@@ -187,13 +212,13 @@
                                         </span>
                                         <span class="ml-4">
                                             @if($courseResult)
-                                                @if($courseResult->result_status === 'Pass')
+                                                @if($courseResult->result_status === 'Qualified')
                                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                                        Pass ({{ number_format($courseResult->score_value, 2) }}%)
+                                                        Qualified ({{ number_format($courseResult->score_value, 2) }}%)
                                                     </span>
                                                 @else
                                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                                        Fail ({{ number_format($courseResult->score_value, 2) }}%)
+                                                        Not Qualified ({{ number_format($courseResult->score_value, 2) }}%)
                                                     </span>
                                                 @endif
                                             @else
@@ -274,13 +299,13 @@
                         </div>
                         <div class="text-right">
                             @if($courseResult)
-                                @if($courseResult->result_status === 'Pass')
+                                @if($courseResult->result_status === 'Qualified')
                                     <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                        Pass
+                                        Qualified
                                     </span>
                                 @else
                                     <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                        Fail
+                                        Not Qualified
                                     </span>
                                 @endif
                                 <p class="text-xs text-gray-500 mt-1">Score: {{ number_format($courseResult->score_value, 2) }}%</p>
@@ -396,11 +421,11 @@
                                         </span>
                                     @elseif($passed)
                                         <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                            PASS
+                                            QUALIFIED
                                         </span>
                                     @else
                                         <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                            FAIL
+                                            NOT QUALIFIED
                                         </span>
                                     @endif
                                 </div>
@@ -425,6 +450,140 @@
             </div>
         @endif
     </div>
+
+    <!-- Anti-Cheat Activity Log -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Anti-Cheat Activity Log</h2>
+        @if($antiCheatLogs->isNotEmpty())
+            <div class="overflow-x-auto">
+                <div class="max-h-96 overflow-y-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50 sticky top-0">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event Type</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Exam Attempt</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            @foreach($antiCheatLogs as $log)
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                        {{ $log->event_timestamp->format('M d, Y h:i:s A') }}
+                                    </td>
+                                    <td class="px-4 py-3 whitespace-nowrap">
+                                        @php
+                                            $eventTypeColors = [
+                                                'window_blur' => 'bg-blue-100 text-blue-800',
+                                                'tab_switch' => 'bg-yellow-100 text-yellow-800',
+                                                'window_hidden' => 'bg-orange-100 text-orange-800',
+                                                'contextmenu_blocked' => 'bg-red-100 text-red-800',
+                                                'copy_attempt' => 'bg-red-100 text-red-800',
+                                                'paste_attempt' => 'bg-red-100 text-red-800',
+                                                'forbidden_hotkey' => 'bg-purple-100 text-purple-800',
+                                                'ip_changed' => 'bg-indigo-100 text-indigo-800',
+                                                'focus_violation' => 'bg-pink-100 text-pink-800',
+                                                'auto_submit_due_to_violations' => 'bg-red-200 text-red-900',
+                                                'force_submit' => 'bg-red-200 text-red-900',
+                                            ];
+                                            $color = $eventTypeColors[$log->event_type] ?? 'bg-gray-100 text-gray-800';
+                                        @endphp
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $color }}">
+                                            {{ str_replace('_', ' ', $log->event_type) }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                        @if($log->examAttempt)
+                                            {{ $log->examAttempt->exam->title ?? 'N/A' }}
+                                            <br>
+                                            <span class="text-xs text-gray-400">Attempt #{{ $log->exam_attempt_id }}</span>
+                                        @else
+                                            <span class="text-gray-400">N/A</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-gray-500">
+                                        @if($log->event_details && is_array($log->event_details))
+                                            <div class="space-y-1">
+                                                @if(isset($log->event_details['keyCombo']))
+                                                    <div><span class="font-medium">Key Combo:</span> {{ $log->event_details['keyCombo'] }}</div>
+                                                @endif
+                                                @if(isset($log->event_details['start_ip']) && isset($log->event_details['current_ip']))
+                                                    <div><span class="font-medium">IP Change:</span> {{ $log->event_details['start_ip'] }} → {{ $log->event_details['current_ip'] }}</div>
+                                                @endif
+                                                @if(isset($log->event_details['violation_count']))
+                                                    <div><span class="font-medium">Violation Count:</span> {{ $log->event_details['violation_count'] }}</div>
+                                                @endif
+                                                @if(isset($log->event_details['visibility_state']))
+                                                    <div><span class="font-medium">Visibility:</span> {{ $log->event_details['visibility_state'] }}</div>
+                                                @endif
+                                                @if(isset($log->event_details['target']))
+                                                    <div><span class="font-medium">Target:</span> {{ $log->event_details['target'] }}</div>
+                                                @endif
+                                                @if(isset($log->event_details['reason']))
+                                                    <div><span class="font-medium">Reason:</span> {{ $log->event_details['reason'] }}</div>
+                                                @endif
+                                            </div>
+                                        @else
+                                            <span class="text-gray-400">No additional details</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        @else
+            <div class="text-center py-8">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <p class="mt-2 text-sm text-gray-500">No anti-cheat events logged for this applicant.</p>
+            </div>
+        @endif
+    </div>
 </div>
+
+<!-- Reset Credentials Modal -->
+<div id="resetModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Reset Username & Password</h3>
+            <p class="text-sm text-gray-600 mb-6">Reset this applicant's login credentials?</p>
+            <div class="flex justify-end space-x-3">
+                <button type="button" 
+                        onclick="closeResetModal()"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                    Cancel
+                </button>
+                <form method="POST" action="{{ route('admission.applicants.reset-credentials', $applicant) }}" id="resetForm">
+                    @csrf
+                    <button type="submit" 
+                            class="px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 transition-colors">
+                        Confirm
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openResetModal() {
+    document.getElementById('resetModal').classList.remove('hidden');
+}
+
+function closeResetModal() {
+    document.getElementById('resetModal').classList.add('hidden');
+}
+
+// Close modal when clicking outside
+document.getElementById('resetModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeResetModal();
+    }
+});
+</script>
 @endsection
 

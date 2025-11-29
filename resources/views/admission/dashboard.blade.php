@@ -45,24 +45,7 @@
             </div>
         </div>
 
-        <!-- Exam Taken -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <div class="flex items-center">
-                <div class="flex-shrink-0 bg-purple-500 rounded-md p-3">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                </div>
-                <div class="ml-5 w-0 flex-1">
-                    <dl>
-                        <dt class="text-sm font-medium text-gray-500 truncate">Exam Taken</dt>
-                        <dd class="text-2xl font-semibold text-gray-900">{{ $examTakenApplicants }}</dd>
-                    </dl>
-                </div>
-            </div>
-        </div>
-
-        <!-- Passed -->
+        <!-- Qualified -->
         <div class="bg-white rounded-lg shadow p-6">
             <div class="flex items-center">
                 <div class="flex-shrink-0 bg-green-500 rounded-md p-3">
@@ -72,14 +55,14 @@
                 </div>
                 <div class="ml-5 w-0 flex-1">
                     <dl>
-                        <dt class="text-sm font-medium text-gray-500 truncate">Passed</dt>
-                        <dd class="text-2xl font-semibold text-gray-900">{{ $passedApplicants }}</dd>
+                        <dt class="text-sm font-medium text-gray-500 truncate">Qualified</dt>
+                        <dd class="text-2xl font-semibold text-gray-900">{{ $qualifiedApplicants }}</dd>
                     </dl>
                 </div>
             </div>
         </div>
 
-        <!-- Failed -->
+        <!-- Not Qualified -->
         <div class="bg-white rounded-lg shadow p-6">
             <div class="flex items-center">
                 <div class="flex-shrink-0 bg-red-500 rounded-md p-3">
@@ -89,8 +72,8 @@
                 </div>
                 <div class="ml-5 w-0 flex-1">
                     <dl>
-                        <dt class="text-sm font-medium text-gray-500 truncate">Failed</dt>
-                        <dd class="text-2xl font-semibold text-gray-900">{{ $failedApplicants }}</dd>
+                        <dt class="text-sm font-medium text-gray-500 truncate">Not Qualified</dt>
+                        <dd class="text-2xl font-semibold text-gray-900">{{ $notQualifiedApplicants }}</dd>
                     </dl>
                 </div>
             </div>

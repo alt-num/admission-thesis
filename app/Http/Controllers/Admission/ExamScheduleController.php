@@ -44,6 +44,9 @@ class ExamScheduleController extends Controller
             'start_time' => $request->start_time,
             'end_time' => $request->end_time,
             'capacity' => $request->capacity,
+            'location' => $request->location,
+            'exam_code' => $this->generateExamCode(),
+            'anti_cheat_enabled' => $request->has('anti_cheat_enabled') ? (bool)$request->anti_cheat_enabled : true,
         ]);
 
         return redirect()
@@ -110,6 +113,8 @@ class ExamScheduleController extends Controller
             'start_time' => $request->start_time,
             'end_time' => $request->end_time,
             'capacity' => $request->capacity,
+            'location' => $request->location,
+            'anti_cheat_enabled' => $request->has('anti_cheat_enabled') ? (bool)$request->anti_cheat_enabled : true,
         ]);
 
         return redirect()
@@ -236,5 +241,40 @@ class ExamScheduleController extends Controller
         return redirect()
             ->route('admission.exams.schedules.show', [$exam, $schedule])
             ->with('success', 'Applicant unassigned successfully!');
+    }
+
+    /**
+     * Generate a new exam code for a schedule.
+     */
+    public function generateCode(Exam $exam, ExamSchedule $schedule)
+    {
+        // Ensure schedule belongs to exam
+        if ($schedule->exam_id !== $exam->exam_id) {
+            abort(404);
+        }
+
+        $schedule->update([
+            'exam_code' => $this->generateExamCode(),
+        ]);
+
+        return redirect()
+            ->route('admission.exams.schedules.show', [$exam, $schedule])
+            ->with('success', 'New exam code generated successfully!');
+    }
+
+    /**
+     * Generate a random 4-5 character alphanumeric exam code.
+     */
+    private function generateExamCode(): string
+    {
+        $length = rand(4, 5); // Random length between 4 and 5
+        $characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        $code = '';
+        
+        for ($i = 0; $i < $length; $i++) {
+            $code .= $characters[rand(0, strlen($characters) - 1)];
+        }
+        
+        return $code;
     }
 }

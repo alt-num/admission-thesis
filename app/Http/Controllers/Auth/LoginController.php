@@ -56,30 +56,30 @@ class LoginController extends Controller
             
             foreach ($requiredFields as $field) {
                 if (empty($applicant->$field)) {
-                    return redirect('/applicant/profile')->with('info', 'Please complete your profile to continue.');
+                    return redirect()->route('applicant.profile.show')->with('info', 'Please complete your profile to continue.');
                 }
             }
             
             // Check if declaration is complete
             $declaration = $applicant->declaration;
             if (!$declaration) {
-                return redirect('/applicant/declaration')->with('info', 'Please complete your declaration to continue.');
+                return redirect()->route('applicant.declaration.edit')->with('info', 'Please complete your declaration to continue.');
             }
             
             $requiredDeclarationFields = ['physical_condition_flag', 'disciplinary_action_flag', 'certified_signature_name', 'certified_date'];
             foreach ($requiredDeclarationFields as $field) {
                 if (!isset($declaration->$field)) {
-                    return redirect('/applicant/declaration')->with('info', 'Please complete your declaration to continue.');
+                    return redirect()->route('applicant.declaration.edit')->with('info', 'Please complete your declaration to continue.');
                 }
             }
             
             // Check conditional fields
             if ($declaration->physical_condition_flag && empty($declaration->physical_condition_desc)) {
-                return redirect('/applicant/declaration')->with('info', 'Please complete your declaration to continue.');
+                return redirect()->route('applicant.declaration.edit')->with('info', 'Please complete your declaration to continue.');
             }
             
             if ($declaration->disciplinary_action_flag && empty($declaration->disciplinary_action_desc)) {
-                return redirect('/applicant/declaration')->with('info', 'Please complete your declaration to continue.');
+                return redirect()->route('applicant.declaration.edit')->with('info', 'Please complete your declaration to continue.');
             }
             
             // Profile is complete, redirect to dashboard
@@ -94,14 +94,30 @@ class LoginController extends Controller
 
     /**
      * Handle a logout request.
+     * Only logs out the guard that made the request, preserving the other guard's session.
      */
     public function logout(Request $request)
     {
-        // Log out from both guards to be safe
-        Auth::guard('admission')->logout();
-        Auth::guard('applicant')->logout();
+        // Determine which guard is active based on the referrer
+        $referer = $request->headers->get('referer', '');
+        $isAdmission = str_contains($referer, '/admission/');
+        $isApplicant = str_contains($referer, '/applicant/');
 
-        $request->session()->invalidate();
+        // Log out only the active guard
+        if ($isAdmission && Auth::guard('admission')->check()) {
+            Auth::guard('admission')->logout();
+        } elseif ($isApplicant && Auth::guard('applicant')->check()) {
+            Auth::guard('applicant')->logout();
+        } else {
+            // Fallback: log out whichever guard is active
+            if (Auth::guard('admission')->check()) {
+                Auth::guard('admission')->logout();
+            } elseif (Auth::guard('applicant')->check()) {
+                Auth::guard('applicant')->logout();
+            }
+        }
+
+        // Regenerate CSRF token (shared session)
         $request->session()->regenerateToken();
 
         return redirect('/login');

@@ -26,6 +26,8 @@ class UpdateExamScheduleRequest extends FormRequest
             'start_time' => ['required', 'date_format:H:i'],
             'end_time' => ['required', 'date_format:H:i', 'after:start_time'],
             'capacity' => ['nullable', 'integer', 'min:1'],
+            'location' => ['nullable', 'string', 'max:255'],
+            'anti_cheat_enabled' => ['nullable', 'boolean'],
         ];
     }
 }

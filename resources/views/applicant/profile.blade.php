@@ -14,7 +14,7 @@
             <p class="mt-2 text-sm text-gray-600">Please provide your accurate information. Fields marked with * are required.</p>
         </div>
 
-        <form action="{{ route('applicant.profile.update') }}" method="POST" class="space-y-8">
+        <form action="{{ route('applicant.profile.complete.update') }}" method="POST" class="space-y-8">
             @csrf
 
             <!-- Personal Information -->

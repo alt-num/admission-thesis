@@ -7,6 +7,7 @@ use App\Mail\ExamScheduleAssignedMail;
 use App\Models\Applicant;
 use App\Models\ApplicantExamSchedule;
 use App\Models\ApplicantUser;
+use App\Models\AntiCheatLog;
 use App\Models\Campus;
 use App\Models\Course;
 use App\Models\Exam;
@@ -85,6 +86,8 @@ class ApplicantController extends Controller
             'first_name' => 'required|string|max:255',
             'middle_name' => 'nullable|string|max:255',
             'last_name' => 'required|string|max:255',
+            'app_number' => 'required|integer|min:1|max:99999',
+            'app_ref_no' => 'nullable|string', // Hidden field, will be regenerated server-side
             'email' => 'required|email|unique:applicants,email',
             'campus_id' => 'required|exists:campuses,campus_id',
             'school_year' => 'required|string',
@@ -94,11 +97,22 @@ class ApplicantController extends Controller
             'schedule_id' => 'nullable|exists:exam_schedules,schedule_id',
         ]);
 
-        // Get the campus to generate app_ref_no
+        // Get the campus
         $campus = Campus::findOrFail($validated['campus_id']);
 
-        // Generate unique app_ref_no using the new format
-        $appRefNo = Applicant::generateRefNumber($campus);
+        // Generate formatted reference number server-side (prevents tampering)
+        $cityCode = $campus->city_code;
+        $year = date('y'); // Last 2 digits of current year
+        $appNumber = (int) $validated['app_number'];
+        $paddedNumber = str_pad($appNumber, 5, '0', STR_PAD_LEFT);
+        $appRefNo = "{$cityCode}-{$year}{$paddedNumber}";
+
+        // Validate uniqueness of generated reference number
+        if (Applicant::where('app_ref_no', $appRefNo)->exists()) {
+            return back()
+                ->withErrors(['app_number' => 'This application number already exists for this campus and year.'])
+                ->withInput();
+        }
 
         // Create applicant
         $applicant = Applicant::create([
@@ -118,7 +132,19 @@ class ApplicantController extends Controller
 
         // Generate username (using app_ref_no)
         $username = strtolower($appRefNo);
-        $defaultPassword = strtolower($appRefNo);
+        
+        // Generate password: <year>-<sequence> (e.g., "25-00003" from "BOR-2500003")
+        // Extract year (2 digits) and sequence (5 digits) from app_ref_no
+        // Format: {cityCode}-{year}{sequence}
+        $parts = explode('-', $appRefNo);
+        if (count($parts) === 2 && strlen($parts[1]) === 7) {
+            $year = substr($parts[1], 0, 2); // First 2 digits
+            $sequence = substr($parts[1], 2, 5); // Last 5 digits
+            $defaultPassword = "{$year}-{$sequence}";
+        } else {
+            // Fallback to old format if parsing fails
+            $defaultPassword = strtolower($appRefNo);
+        }
 
         // Create ApplicantUser
         ApplicantUser::create([
@@ -193,9 +219,15 @@ class ApplicantController extends Controller
             'examSchedules.examSchedule.exam'
         ]);
 
+        // Load anti-cheat logs for this applicant, sorted by timestamp descending
+        $antiCheatLogs = AntiCheatLog::where('applicant_id', $applicant->applicant_id)
+            ->with('examAttempt.exam')
+            ->orderBy('event_timestamp', 'desc')
+            ->get();
+
         $eligibility = $this->computeCourseEligibility($applicant);
 
-        return view('admission.applicants.show', compact('applicant', 'eligibility'));
+        return view('admission.applicants.show', compact('applicant', 'eligibility', 'antiCheatLogs'));
     }
 
     /**
@@ -225,6 +257,7 @@ class ApplicantController extends Controller
             'preferred_course_3' => 'nullable|exists:courses,course_id',
         ]);
 
+        // app_ref_no is NOT editable - it remains unchanged
         $applicant->update([
             'first_name' => $validated['first_name'],
             'middle_name' => $validated['middle_name'] ?? null,
@@ -252,13 +285,96 @@ class ApplicantController extends Controller
     }
 
     /**
+     * Reset applicant username and password.
+     */
+    public function resetCredentials(Applicant $applicant)
+    {
+        // Check if user is Admin or Staff
+        $user = Auth::guard('admission')->user();
+        if (!$user || !in_array($user->role, ['Admin', 'Staff'])) {
+            abort(403, 'Unauthorized access.');
+        }
+
+        // Validate that applicant has email
+        if (!$applicant->email) {
+            return back()->with('error', 'Applicant does not have an email address.');
+        }
+
+        // Validate that applicant has user account
+        if (!$applicant->applicantUser) {
+            return back()->with('error', 'Applicant does not have a user account.');
+        }
+
+        // Load campus for city code
+        $applicant->load('campus');
+        $campus = $applicant->campus;
+        if (!$campus) {
+            return back()->with('error', 'Applicant does not have an associated campus.');
+        }
+
+        // Regenerate username (same format: lowercase app_ref_no)
+        $username = strtolower($applicant->app_ref_no);
+
+        // Check for username uniqueness (excluding current applicant user)
+        $existingUser = ApplicantUser::where('username', $username)
+            ->where('user_id', '!=', $applicant->applicantUser->user_id)
+            ->first();
+        
+        if ($existingUser) {
+            return back()->with('error', 'Username already exists. Please contact system administrator.');
+        }
+
+        // Generate password: <year>-<sequence> (e.g., "25-00003" from "BOR-2500003")
+        // Extract year (2 digits) and sequence (5 digits) from app_ref_no
+        $parts = explode('-', $applicant->app_ref_no);
+        if (count($parts) === 2 && strlen($parts[1]) === 7) {
+            $year = substr($parts[1], 0, 2); // First 2 digits
+            $sequence = substr($parts[1], 2, 5); // Last 5 digits
+            $newPassword = "{$year}-{$sequence}";
+        } else {
+            // Fallback to old format if parsing fails
+            $newPassword = strtolower($applicant->app_ref_no);
+        }
+
+        // Hash password before saving
+        $hashedPassword = Hash::make($newPassword);
+
+        // Update database
+        $applicant->applicantUser->update([
+            'username' => $username,
+            'password' => $hashedPassword,
+        ]);
+
+        // Re-send email notification with new credentials
+        try {
+            $campusName = $campus->campus_name ?? 'N/A';
+            Mail::to($applicant->email)->send(
+                new ApplicantAccountCreatedMail(
+                    $applicant,
+                    $username,
+                    $newPassword,
+                    $campusName
+                )
+            );
+        } catch (\Exception $e) {
+            // Log error but don't fail the reset
+            \Log::error('Failed to send reset credentials email: ' . $e->getMessage());
+            return back()->with('warning', 'Credentials reset successfully, but email notification failed to send.');
+        }
+
+        return back()->with('success', 'Applicant credentials have been reset and emailed.');
+    }
+
+    /**
      * Compute course eligibility based on exam scores.
      */
     private function computeCourseEligibility(Applicant $applicant): array
     {
         // Get the most recent exam attempt
         $examAttempt = $applicant->examAttempts()
-            ->with(['exam', 'subsectionScores.subsection.section'])
+            ->with(['exam.sections' => function($query) {
+                $query->orderBy('order_no');
+            }, 'subsectionScores.subsection.section'])
             ->latest('started_at')
             ->first();
 
@@ -272,32 +388,34 @@ class ApplicantController extends Controller
             ];
         }
 
-        // Get section scores from exam_attempts
-        $sections = [];
-        if ($examAttempt->score_verbal !== null) {
-            $sections[] = [
-                'name' => 'Verbal',
-                'score' => (float) $examAttempt->score_verbal,
-            ];
-        }
-        if ($examAttempt->score_nonverbal !== null) {
-            $sections[] = [
-                'name' => 'Nonverbal',
-                'score' => (float) $examAttempt->score_nonverbal,
-            ];
-        }
-
         // Get subsection scores grouped by section
         $subsections = [];
         $subsectionScores = $examAttempt->subsectionScores()
             ->with('subsection.section')
             ->get();
 
+        // Group subsection scores by section for calculation
+        $subsectionScoresBySection = [];
         foreach ($subsectionScores as $subsectionScore) {
             $subsection = $subsectionScore->subsection;
             $section = $subsection->section;
             
-            $sectionName = $section->name ?? 'Unknown';
+            if (!$section) {
+                continue;
+            }
+            
+            $sectionId = $section->section_id;
+            if (!isset($subsectionScoresBySection[$sectionId])) {
+                $subsectionScoresBySection[$sectionId] = [
+                    'section' => $section,
+                    'scores' => [],
+                ];
+            }
+            
+            $subsectionScoresBySection[$sectionId]['scores'][] = (float) $subsectionScore->score;
+            
+            // Also build subsections array for display
+            $sectionName = $section->name;
             if (!isset($subsections[$sectionName])) {
                 $subsections[$sectionName] = [];
             }
@@ -306,6 +424,29 @@ class ApplicantController extends Controller
                 'name' => $subsection->name,
                 'score' => (float) $subsectionScore->score,
             ];
+        }
+
+        // Calculate section scores from actual exam sections
+        $sections = [];
+        if ($examAttempt->exam && $examAttempt->exam->sections) {
+            foreach ($examAttempt->exam->sections as $section) {
+                $sectionId = $section->section_id;
+                
+                // Calculate section score as average of its subsection scores
+                $sectionScore = null;
+                if (isset($subsectionScoresBySection[$sectionId]) && !empty($subsectionScoresBySection[$sectionId]['scores'])) {
+                    $scores = $subsectionScoresBySection[$sectionId]['scores'];
+                    $sectionScore = count($scores) > 0 ? array_sum($scores) / count($scores) : 0;
+                }
+                
+                // Only include sections that have subsection scores
+                if ($sectionScore !== null) {
+                    $sections[] = [
+                        'name' => $section->name,
+                        'score' => round($sectionScore, 2),
+                    ];
+                }
+            }
         }
 
         // Get preferred courses and check eligibility

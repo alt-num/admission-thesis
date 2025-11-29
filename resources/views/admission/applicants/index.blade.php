@@ -78,9 +78,8 @@
                                 @php
                                     $statusColors = [
                                         'Pending' => 'bg-yellow-100 text-yellow-800',
-                                        'ExamTaken' => 'bg-purple-100 text-purple-800',
-                                        'Passed' => 'bg-green-100 text-green-800',
-                                        'Failed' => 'bg-red-100 text-red-800',
+                                        'Qualified' => 'bg-green-100 text-green-800',
+                                        'NotQualified' => 'bg-red-100 text-red-800',
                                     ];
                                     $color = $statusColors[$applicant->status] ?? 'bg-gray-100 text-gray-800';
                                 @endphp

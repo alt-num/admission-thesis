@@ -28,8 +28,20 @@ class EmailController extends Controller
 
         try {
             $username = $applicant->applicantUser->username;
-            // Temporary password is the same as username (or app_ref_no)
-            $temporaryPassword = $username;
+            
+            // Extract password from username/app_ref_no: <year>-<sequence>
+            // Username format: {citycode}-{year}{sequence} (lowercase)
+            // Password format: {year}-{sequence}
+            $parts = explode('-', $username);
+            if (count($parts) === 2 && strlen($parts[1]) === 7) {
+                $year = substr($parts[1], 0, 2); // First 2 digits
+                $sequence = substr($parts[1], 2, 5); // Last 5 digits
+                $temporaryPassword = "{$year}-{$sequence}";
+            } else {
+                // Fallback: use username if parsing fails
+                $temporaryPassword = $username;
+            }
+            
             $campusName = $applicant->campus->campus_name ?? 'N/A';
 
             Mail::to($applicant->email)->send(

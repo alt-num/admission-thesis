@@ -107,6 +107,24 @@
                             @enderror
                         </div>
                     </div>
+                    <div class="mt-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Exam Location</label>
+                        <input type="text" name="location" placeholder="e.g., Main Campus - Room 101"
+                               value="{{ old('location') }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <p class="mt-1 text-xs text-gray-500">Optional - Enter the exam location/venue</p>
+                        @error('location')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div class="mt-4">
+                        <label class="flex items-center">
+                            <input type="checkbox" name="anti_cheat_enabled" value="1" checked
+                                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <span class="ml-2 text-sm text-gray-700">Enable Anti-Cheat for this Exam</span>
+                        </label>
+                        <p class="mt-1 text-xs text-gray-500">When disabled, anti-cheat rules will not apply to this exam schedule</p>
+                    </div>
                     <div>
                         <button type="submit" 
                                 class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
@@ -130,6 +148,7 @@
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Capacity</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -143,6 +162,9 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                         {{ date('g:i A', strtotime($schedule->start_time)) }} – {{ date('g:i A', strtotime($schedule->end_time)) }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                        {{ $schedule->location ?? 'TBA' }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                         {{ $schedule->capacity ?? 'Unlimited' }}
@@ -177,7 +199,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="px-6 py-8 text-center text-sm text-gray-500">
+                                    <td colspan="6" class="px-6 py-8 text-center text-sm text-gray-500">
                                         No schedules created yet. Add one above.
                                     </td>
                                 </tr>

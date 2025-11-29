@@ -12,7 +12,7 @@
 
     <!-- Exam Result Status Notice -->
     @if($examStatus === 'finished' && $applicant->status)
-        @if($applicant->status === 'Passed')
+        @if($applicant->status === 'Qualified')
             <div class="bg-green-50 border-l-4 border-green-400 p-4 mb-6">
                 <div class="flex">
                     <div class="flex-shrink-0">
@@ -22,12 +22,12 @@
                     </div>
                     <div class="ml-3">
                         <p class="text-sm text-green-700">
-                            <strong>Congratulations!</strong> You have passed the examination. Please wait for further instructions from the Admission Office.
+                            <strong>Congratulations!</strong> You have qualified for admission. Please wait for further instructions from the Admission Office.
                         </p>
                     </div>
                 </div>
             </div>
-        @elseif($applicant->status === 'Failed')
+        @elseif($applicant->status === 'NotQualified')
             <div class="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
                 <div class="flex">
                     <div class="flex-shrink-0">
@@ -37,7 +37,7 @@
                     </div>
                     <div class="ml-3">
                         <p class="text-sm text-red-700">
-                            Unfortunately, you did not meet the passing requirements. Please contact the Admission Office for guidance on next steps.
+                            Unfortunately, you did not meet the qualification requirements. Please contact the Admission Office for guidance on next steps.
                         </p>
                     </div>
                 </div>
@@ -59,6 +59,15 @@
             <div class="space-y-2">
                 <p class="text-2xl font-bold text-green-600">Profile Completed ✓</p>
                 <p class="text-sm text-gray-600">Your profile and declaration have been successfully submitted.</p>
+            </div>
+            <div class="mt-4 pt-4 border-t border-gray-200">
+                <a href="{{ route('applicant.profile.edit') }}" 
+                   class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                    </svg>
+                    Edit Profile
+                </a>
             </div>
         </div>
 
@@ -154,13 +163,13 @@
                     <p class="text-sm font-medium text-gray-900 mb-3">Your Results:</p>
                     <div class="space-y-2">
                         @foreach($courseResults as $result)
-                            <div class="flex items-center justify-between p-2 rounded {{ $result->result_status === 'Pass' ? 'bg-green-50' : 'bg-red-50' }}">
+                            <div class="flex items-center justify-between p-2 rounded {{ $result->result_status === 'Qualified' ? 'bg-green-50' : 'bg-red-50' }}">
                                 <div class="flex-1">
                                     <p class="text-sm font-medium text-gray-900">{{ $result->course->course_code }}</p>
                                     <p class="text-xs text-gray-600">{{ $result->course->course_name }}</p>
                                 </div>
-                                <span class="px-3 py-1 text-xs font-semibold rounded-full {{ $result->result_status === 'Pass' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                                    {{ $result->result_status }}
+                                <span class="px-3 py-1 text-xs font-semibold rounded-full {{ $result->result_status === 'Qualified' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                                    {{ $result->result_status === 'Qualified' ? 'Qualified' : 'Not Qualified' }}
                                 </span>
                             </div>
                         @endforeach

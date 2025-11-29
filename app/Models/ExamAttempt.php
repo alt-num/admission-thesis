@@ -21,6 +21,7 @@ class ExamAttempt extends Model
         'score_total' => 'decimal:2',
         'score_verbal' => 'decimal:2',
         'score_nonverbal' => 'decimal:2',
+        'ip_changed' => 'boolean',
     ];
 
     public function applicant(): BelongsTo

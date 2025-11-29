@@ -25,6 +25,14 @@ Route::middleware('auth:admission')->prefix('admission')->name('admission.')->gr
     // Dashboard
     Route::get('/dashboard', [AdmissionDashboardController::class, 'index'])->name('dashboard');
 
+    // Active Examinees Monitor
+    Route::get('/active-examinees', [\App\Http\Controllers\Admission\ActiveExamineesController::class, 'index'])->name('active-examinees.index');
+    Route::get('/active-examinees/fetch', [\App\Http\Controllers\Admission\ActiveExamineesController::class, 'fetch'])->name('active-examinees.fetch');
+
+    // Exam Activity History
+    Route::get('/exam-activity-history', [\App\Http\Controllers\Admission\ExamActivityHistoryController::class, 'index'])->name('exam-activity-history.index');
+    Route::get('/exam-activity-history/{attempt}', [\App\Http\Controllers\Admission\ExamActivityHistoryController::class, 'show'])->name('exam-activity-history.show');
+
     // Applicants
     Route::get('/applicants', [ApplicantController::class, 'index'])->name('applicants.index');
     Route::get('/applicants/create', [ApplicantController::class, 'create'])->name('applicants.create');
@@ -36,6 +44,7 @@ Route::middleware('auth:admission')->prefix('admission')->name('admission.')->gr
     Route::post('/applicants/{applicant}/declaration/remarks', [\App\Http\Controllers\ApplicantDeclarationController::class, 'saveRemarks'])->name('applicants.declaration.remarks');
     Route::post('/applicants/{applicant}/send-credentials', [\App\Http\Controllers\Admission\EmailController::class, 'sendCredentials'])->name('applicants.send-credentials');
     Route::post('/applicants/{applicant}/send-schedule', [\App\Http\Controllers\Admission\EmailController::class, 'sendSchedule'])->name('applicants.send-schedule');
+    Route::post('/applicants/{applicant}/reset-credentials', [ApplicantController::class, 'resetCredentials'])->name('applicants.reset-credentials');
 
     // Exams
     Route::get('/exams', [ExamController::class, 'index'])->name('exams.index');
@@ -55,6 +64,7 @@ Route::middleware('auth:admission')->prefix('admission')->name('admission.')->gr
         Route::delete('/schedules/{schedule}', [\App\Http\Controllers\Admission\ExamScheduleController::class, 'destroy'])->name('exams.schedules.destroy');
         Route::post('/schedules/{schedule}/assign', [\App\Http\Controllers\Admission\ExamScheduleController::class, 'assignApplicants'])->name('exams.schedules.assign');
         Route::delete('/schedules/{schedule}/assigned/{applicant}', [\App\Http\Controllers\Admission\ExamScheduleController::class, 'unassignApplicant'])->name('exams.schedules.unassign');
+        Route::post('/schedules/{schedule}/generate-code', [\App\Http\Controllers\Admission\ExamScheduleController::class, 'generateCode'])->name('exams.schedules.generate-code');
     });
 
     // Exam Editor API Routes
@@ -102,6 +112,10 @@ Route::middleware('auth:admission')->prefix('admission')->name('admission.')->gr
 
     // Settings
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+    
+    // Anti-Cheat Settings (Admin only)
+    Route::get('/settings/anticheat', [\App\Http\Controllers\Admission\AntiCheatSettingsController::class, 'index'])->name('settings.anticheat');
+    Route::put('/settings/anticheat', [\App\Http\Controllers\Admission\AntiCheatSettingsController::class, 'update'])->name('settings.anticheat.update');
 
     // My Account
     Route::get('/my-account', [\App\Http\Controllers\Admission\MyAccountController::class, 'edit'])->name('my-account.edit');
@@ -110,9 +124,14 @@ Route::middleware('auth:admission')->prefix('admission')->name('admission.')->gr
 
 // Applicant routes (protected)
 Route::middleware('auth:applicant')->prefix('applicant')->name('applicant.')->group(function () {
-    // Profile routes (NO middleware - must be accessible to complete profile)
-    Route::get('/profile', [\App\Http\Controllers\Applicant\ApplicantProfileController::class, 'edit'])->name('profile.edit');
-    Route::post('/profile', [\App\Http\Controllers\Applicant\ApplicantProfileController::class, 'update'])->name('profile.update');
+    // Profile completion routes (NO middleware - must be accessible to complete profile)
+    Route::get('/profile', [\App\Http\Controllers\Applicant\ApplicantProfileController::class, 'show'])->name('profile.show');
+    Route::get('/profile/complete', [\App\Http\Controllers\Applicant\ApplicantProfileController::class, 'edit'])->name('profile.complete');
+    Route::post('/profile/complete', [\App\Http\Controllers\Applicant\ApplicantProfileController::class, 'update'])->name('profile.complete.update');
+    
+    // Profile edit routes (limited fields: username, password, email, mobile)
+    Route::get('/profile/edit', [\App\Http\Controllers\Applicant\ApplicantProfileController::class, 'editProfile'])->name('profile.edit');
+    Route::post('/profile/update', [\App\Http\Controllers\Applicant\ApplicantProfileController::class, 'updateProfile'])->name('profile.update');
 
     // Declaration routes (NO middleware - must be accessible to complete declaration)
     Route::get('/declaration', [\App\Http\Controllers\Applicant\ApplicantDeclarationController::class, 'edit'])->name('declaration.edit');
@@ -127,12 +146,16 @@ Route::middleware('auth:applicant')->prefix('applicant')->name('applicant.')->gr
         Route::get('/schedule', [\App\Http\Controllers\Applicant\ApplicantScheduleController::class, 'index'])->name('schedule');
         
         // Exam Access (start only - access logic moved to schedule page)
+        Route::post('/exam/check-code', [\App\Http\Controllers\Applicant\ApplicantExamAccessController::class, 'checkCode'])->name('exam.check-code');
         Route::post('/exam/start', [\App\Http\Controllers\Applicant\ApplicantExamAccessController::class, 'start'])->name('exam.start');
         
         // Exam Taking
         Route::get('/exam/take', [\App\Http\Controllers\Applicant\ApplicantExamController::class, 'index'])->name('exam.take');
         Route::post('/exam/answer', [\App\Http\Controllers\Applicant\ApplicantExamController::class, 'saveAnswer'])->name('exam.answer');
         Route::post('/exam/finish', [\App\Http\Controllers\Applicant\ApplicantExamController::class, 'finishExam'])->name('exam.finish');
+        
+        // Anti-Cheat Logging
+        Route::post('/exam/anticheat/log', [\App\Http\Controllers\Applicant\AntiCheatController::class, 'logEvent'])->name('exam.anticheat.log');
         
         // Exam Results
         Route::get('/exam/results', [\App\Http\Controllers\Applicant\ApplicantExamResultController::class, 'index'])->name('exam.results');

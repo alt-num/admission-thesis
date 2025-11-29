@@ -4,6 +4,9 @@
 
 @push('head')
 <script src="/js/alpine.js" defer></script>
+@if(config('anticheat.enabled', true))
+<script src="/js/anticheat-manager.js"></script>
+@endif
 <style>
     [x-cloak] { display: none !important; }
 </style>
@@ -43,7 +46,8 @@
                         @foreach($section->subsections as $subsectionIndex => $subsection)
                             <div class="mb-1">
                                 <button @click="toggleSubsection({{ $sectionIndex }}, {{ $subsectionIndex }})"
-                                        class="w-full text-left px-3 py-2 text-sm rounded transition-colors flex items-center justify-between"
+                                        :disabled="isSubmitting"
+                                        class="w-full text-left px-3 py-2 text-sm rounded transition-colors flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed"
                                         :class="currentSection === {{ $sectionIndex }} && currentSubsection === {{ $subsectionIndex }} 
                                             ? 'bg-green-100 text-green-800 font-semibold' 
                                             : 'text-gray-800 hover:bg-gray-100 font-medium'">
@@ -58,7 +62,8 @@
                                      class="ml-4 mt-1 space-y-1">
                                     <template x-for="(q, qIdx) in getSubsectionQuestions({{ $sectionIndex }}, {{ $subsectionIndex }})" :key="q.question_id">
                                         <button @click="goToQuestion(q.question_id)"
-                                                class="w-full text-left px-3 py-1 text-xs rounded transition-colors"
+                                                :disabled="isSubmitting"
+                                                class="w-full text-left px-3 py-1 text-xs rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                                 :class="currentQuestion && currentQuestion.question_id === q.question_id
                                                     ? 'bg-blue-100 text-blue-800 font-medium'
                                                     : 'text-gray-600 hover:bg-gray-50'">
@@ -76,6 +81,17 @@
         <!-- Main Question Area -->
         <main class="flex-1 overflow-y-auto p-6">
             <div class="max-w-4xl mx-auto">
+                
+                <!-- Monitoring Banner -->
+                @if(isset($settings) && $settings->monitoring_banner_enabled)
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-4 flex items-center gap-2">
+                    <svg class="h-5 w-5 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                    </svg>
+                    <p class="text-blue-800 text-sm font-medium">Your behavior is being monitored for security.</p>
+                </div>
+                @endif
                 
                 <!-- Question Display -->
                 <template x-if="currentQuestion">
@@ -113,10 +129,13 @@
                         <div class="space-y-3">
                             <template x-for="(choice, index) in currentQuestion.choices" :key="choice.choice_id">
                                 <div @click="selectChoice(choice.choice_id)"
-                                     class="border rounded-lg p-4 cursor-pointer transition-all"
-                                     :class="selectedAnswers[currentQuestion.question_id] === choice.choice_id 
-                                         ? 'border-green-500 bg-green-50' 
-                                         : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'">
+                                     :class="[
+                                         'border rounded-lg p-4 transition-all',
+                                         isSubmitting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
+                                         selectedAnswers[currentQuestion.question_id] === choice.choice_id 
+                                             ? 'border-green-500 bg-green-50' 
+                                             : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'
+                                     ]">
                                     <div class="flex items-start">
                                         <!-- Radio Button -->
                                         <div class="flex-shrink-0 mt-1">
@@ -152,7 +171,8 @@
                 <div class="flex justify-between items-center">
                     <button @click="previousQuestion()"
                             x-show="currentQuestionIndex > 0"
-                            class="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                                                :disabled="isSubmitting"
+                            class="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                         ← Previous
                     </button>
                     
@@ -164,24 +184,47 @@
                     
                     <button @click="nextQuestion()"
                             x-show="currentQuestionIndex < totalQuestions - 1"
-                            class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                                :disabled="isSubmitting"
+                            class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                         Next →
                     </button>
                     
-                    <button @click="confirmSubmit()"
-                            x-show="currentQuestionIndex === totalQuestions - 1"
-                            class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold">
-                        Submit Exam
-                    </button>
+                    <div x-show="currentQuestionIndex === totalQuestions - 1" class="flex flex-col items-end">
+                        <p class="text-xs text-gray-600 mb-2 text-right max-w-xs">
+                            To submit your exam, double-click the Finish button. Submission is final and cannot be undone.
+                        </p>
+                        <div class="flex flex-col items-end">
+                            <button @click="handleFinishClick()"
+                                                :disabled="isSubmitting"
+                                    class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed">
+                                Finish Exam
+                            </button>
+                            <p x-show="showFinishWarning" class="mt-2 text-sm text-orange-600 font-medium">
+                                Click again to finish your exam.
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- Hidden Form for Submission -->
-    <form id="finishExamForm" method="POST" action="{{ route('applicant.exam.finish') }}" style="display: none;">
-        @csrf
-    </form>
+    <!-- Exam Locked Overlay (only for normal submission, not violations) -->
+    <div x-show="isSubmitting" 
+         x-cloak
+         class="fixed inset-0 z-[9999] bg-black bg-opacity-75 flex items-center justify-center"
+         style="display: none;">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-8 text-center pointer-events-auto">
+            <svg class="h-16 w-16 text-blue-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Submitting Exam</h2>
+            <p class="text-gray-700 mb-6">Please wait while your exam is being submitted...</p>
+            <div class="flex justify-center">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -195,6 +238,9 @@ function examInterface() {
         sections: @json($sections),
         attemptId: {{ $attempt->attempt_id }},
         
+        // Finish button double-click
+        showFinishWarning: false,
+        
         // Navigation
         currentSection: 0,
         currentSubsection: 0,
@@ -206,6 +252,13 @@ function examInterface() {
         selectedAnswers: @json($existingAnswers->mapWithKeys(function($answer, $key) {
             return [$answer->question_id => $answer->choice_id];
         })),
+        
+        // Exam state
+        isSubmitting: false,
+        
+        // Double-click to finish
+        finishClickCount: 0,
+        finishClickTimer: null,
         
         // Computed
         get currentQuestion() {
@@ -245,9 +298,34 @@ function examInterface() {
             // Start timer
             this.startTimer();
             
-            // Prevent page reload
+            // Initialize anti-cheat manager (only on exam pages)
+            @php
+                $antiCheatSettings = \App\Services\AntiCheatSettingsService::getSettingsArray();
+                // Check both global setting and per-exam setting
+                $antiCheatEnabled = $antiCheatSettings['enabled'] && ($antiCheatEnabled ?? true);
+            @endphp
+            @if($antiCheatEnabled)
+            if (typeof AntiCheatManager !== 'undefined') {
+                this.anticheatManager = new AntiCheatManager({
+                    enabled: {{ $antiCheatSettings['enabled'] ? 'true' : 'false' }},
+                    attemptId: this.attemptId,
+                    logEndpoint: '{{ route('applicant.exam.anticheat.log') }}',
+                    csrfToken: '{{ csrf_token() }}',
+                    features: {
+                        tabSwitchDetection: {{ $antiCheatSettings['tab_switch_detection'] ? 'true' : 'false' }},
+                        focusLossViolations: {{ $antiCheatSettings['focus_loss_violations'] ? 'true' : 'false' }},
+                        copyPasteBlocking: {{ $antiCheatSettings['copy_paste_blocking'] ? 'true' : 'false' }},
+                        rightClickBlocking: {{ $antiCheatSettings['right_click_blocking'] ? 'true' : 'false' }},
+                        devtoolsHotkeyBlocking: {{ $antiCheatSettings['devtools_hotkey_blocking'] ? 'true' : 'false' }},
+                    },
+                });
+                this.anticheatManager.init();
+            }
+            @endif
+            
+            // Prevent page reload during active exam
             window.addEventListener('beforeunload', (e) => {
-                if (this.timeLeft > 0) {
+                if (this.timeLeft > 0 && !this.isSubmitting) {
                     e.preventDefault();
                     e.returnValue = '';
                 }
@@ -302,6 +380,10 @@ function examInterface() {
         },
         
         goToQuestion(questionId) {
+            if (this.isSubmitting) {
+                return;
+            }
+            
             const questionIdx = this.allQuestions.findIndex(q => q.question_id === questionId);
             if (questionIdx !== -1) {
                 this.currentQuestionIndex = questionIdx;
@@ -310,6 +392,10 @@ function examInterface() {
         },
         
         goToSubsection(sectionIdx, subsectionIdx) {
+            if (this.isSubmitting) {
+                return;
+            }
+            
             this.currentSection = sectionIdx;
             this.currentSubsection = subsectionIdx;
             
@@ -324,6 +410,10 @@ function examInterface() {
         },
         
         nextQuestion() {
+            if (this.isSubmitting) {
+                return;
+            }
+            
             if (this.currentQuestionIndex < this.totalQuestions - 1) {
                 this.currentQuestionIndex++;
                 this.updateCurrentSection();
@@ -331,6 +421,10 @@ function examInterface() {
         },
         
         previousQuestion() {
+            if (this.isSubmitting) {
+                return;
+            }
+            
             if (this.currentQuestionIndex > 0) {
                 this.currentQuestionIndex--;
                 this.updateCurrentSection();
@@ -346,6 +440,11 @@ function examInterface() {
         },
         
         async selectChoice(choiceId) {
+            // Prevent answer changes if submitting
+            if (this.isSubmitting) {
+                return;
+            }
+            
             const questionId = this.currentQuestion.question_id;
             this.selectedAnswers[questionId] = choiceId;
             
@@ -369,36 +468,91 @@ function examInterface() {
                 
                 if (!data.success) {
                     console.error('Failed to save answer:', data.message);
+                    // If exam is finished, prevent further changes
+                    if (data.message && data.message.includes('finished')) {
+                        this.isSubmitting = true;
+                    }
                 }
             } catch (error) {
                 console.error('Error saving answer:', error);
             }
         },
         
-        confirmSubmit() {
-            const unanswered = this.totalQuestions - Object.keys(this.selectedAnswers).length;
-            
-            if (unanswered > 0) {
-                if (!confirm(`You have ${unanswered} unanswered question(s). Are you sure you want to submit?`)) {
-                    return;
-                }
+        handleFinishClick() {
+            // Prevent if submitting
+            if (this.isSubmitting) {
+                return;
             }
             
-            if (confirm('Are you sure you want to submit your exam? You cannot change your answers after submission.')) {
+            // Clear any existing timer
+            if (this.finishClickTimer) {
+                clearTimeout(this.finishClickTimer);
+            }
+            
+            this.finishClickCount++;
+            
+            if (this.finishClickCount === 1) {
+                // First click - show warning message
+                this.showFinishWarning = true;
+                
+                // Reset counter after 1.5 seconds
+                this.finishClickTimer = setTimeout(() => {
+                    this.finishClickCount = 0;
+                    this.showFinishWarning = false;
+                }, 1500);
+            } else if (this.finishClickCount === 2) {
+                // Second click within 1.5 seconds - submit exam
+                this.finishClickCount = 0;
+                this.showFinishWarning = false;
+                clearTimeout(this.finishClickTimer);
                 this.submitExam();
             }
         },
         
-        submitExam() {
+        async submitExam() {
+            if (this.isSubmitting) {
+                return;
+            }
+            
+            this.isSubmitting = true;
             clearInterval(this.timerInterval);
-            document.getElementById('finishExamForm').submit();
+            
+            try {
+                // Submit via POST request directly (no form submission, no navigation)
+                const response = await fetch('{{ route('applicant.exam.finish') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({})
+                });
+                
+                if (response.ok) {
+                    // Success - redirect to results
+                    window.location.href = '{{ route('applicant.exam.results') }}';
+                } else {
+                    const data = await response.json();
+                    console.error('Submit error:', data);
+                    // Re-enable on error
+                    this.isSubmitting = false;
+                }
+            } catch (error) {
+                console.error('Submit error:', error);
+                // Re-enable on error
+                this.isSubmitting = false;
+            }
         },
         
         autoSubmit() {
-            clearInterval(this.timerInterval);
-            alert('Time is up! Your exam will be submitted automatically.');
-            document.getElementById('finishExamForm').submit();
-        }
+            // Time expired - submit automatically
+            if (this.isSubmitting) {
+                return;
+            }
+            
+            this.submitExam();
+        },
     };
 }
 </script>
