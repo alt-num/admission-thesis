@@ -20,6 +20,7 @@ class AdmissionUser extends Authenticatable
         'employee_id',
         'username',
         'password',
+        'plain_password',
         'role',
         'account_status',
     ];

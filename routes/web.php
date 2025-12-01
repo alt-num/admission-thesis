@@ -38,13 +38,14 @@ Route::middleware('auth:admission')->prefix('admission')->name('admission.')->gr
     Route::get('/applicants/create', [ApplicantController::class, 'create'])->name('applicants.create');
     Route::post('/applicants', [ApplicantController::class, 'store'])->name('applicants.store');
     Route::get('/applicants/{applicant}', [ApplicantController::class, 'show'])->name('applicants.show');
-    Route::get('/applicants/{applicant}/edit', [ApplicantController::class, 'edit'])->name('applicants.edit');
-    Route::put('/applicants/{applicant}', [ApplicantController::class, 'update'])->name('applicants.update');
     Route::get('/applicants/{applicant}/declaration', [ApplicantController::class, 'declarationViewing'])->name('applicants.declaration');
     Route::post('/applicants/{applicant}/declaration/remarks', [\App\Http\Controllers\ApplicantDeclarationController::class, 'saveRemarks'])->name('applicants.declaration.remarks');
     Route::post('/applicants/{applicant}/send-credentials', [\App\Http\Controllers\Admission\EmailController::class, 'sendCredentials'])->name('applicants.send-credentials');
     Route::post('/applicants/{applicant}/send-schedule', [\App\Http\Controllers\Admission\EmailController::class, 'sendSchedule'])->name('applicants.send-schedule');
     Route::post('/applicants/{applicant}/reset-credentials', [ApplicantController::class, 'resetCredentials'])->name('applicants.reset-credentials');
+    Route::post('/applicants/{applicant}/request-new-photo', [ApplicantController::class, 'requestNewPhoto'])->name('applicants.request-new-photo');
+    Route::post('/applicants/{applicant}/return-for-revision', [ApplicantController::class, 'returnForRevision'])->name('applicants.return-for-revision');
+    Route::put('/applicants/{applicant}/email', [ApplicantController::class, 'updateEmail'])->name('applicants.updateEmail');
 
     // Exams
     Route::get('/exams', [ExamController::class, 'index'])->name('exams.index');

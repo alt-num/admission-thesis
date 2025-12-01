@@ -155,21 +155,27 @@ class ApplicantExamResultController extends Controller
     private function computeCourseResults($applicant, $attempt, $preferredCourses)
     {
         $results = [];
+        $examStatus = $applicant->examStatus();
 
         foreach ($preferredCourses as $priority => $course) {
             if (!$course) {
                 continue;
             }
 
-            // Determine Qualified/NotQualified based on passing score
-            // Database constraint requires 'Qualified' or 'NotQualified'
-            // If passing_score is NULL, course only requires taking the exam (auto-qualify)
-            if ($course->passing_score === null) {
-                $resultStatus = 'Qualified';
-                $passingScore = null; // No passing score requirement
+            // Determine result status based on exam status
+            if ($examStatus === "Missed") {
+                $resultStatus = 'Missed';
+                $passingScore = null;
             } else {
-                $passingScore = $course->passing_score;
-                $resultStatus = $attempt->score_total >= $passingScore ? 'Qualified' : 'NotQualified';
+                // Exam was completed, evaluate based on score
+                // If passing_score is NULL, course does not evaluate score BUT attendance is still required
+                if ($course->passing_score === null) {
+                    $resultStatus = 'Qualified';
+                    $passingScore = null; // No passing score requirement
+                } else {
+                    $passingScore = $course->passing_score;
+                    $resultStatus = $attempt->score_total >= $passingScore ? 'Qualified' : 'NotQualified';
+                }
             }
 
             // Update or create course result (prevents duplicates via unique constraint)
@@ -180,7 +186,7 @@ class ApplicantExamResultController extends Controller
                 ],
                 [
                     'result_status' => $resultStatus,
-                    'score_value' => $attempt->score_total,
+                    'score_value' => $examStatus === "Missed" ? 0 : $attempt->score_total,
                 ]
             );
 
@@ -200,17 +206,24 @@ class ApplicantExamResultController extends Controller
      */
     private function updateApplicantStatus($applicant, $courseResults)
     {
-        // Check if at least one course qualified
-        $hasPassed = false;
-        foreach ($courseResults as $result) {
-            if ($result['status'] === 'Qualified') {
-                $hasPassed = true;
-                break;
-            }
-        }
+        $examStatus = $applicant->examStatus();
 
-        // Update applicant status
-        $newStatus = $hasPassed ? 'Qualified' : 'NotQualified';
+        // If exam was missed, applicant cannot qualify for ANY course
+        if ($examStatus === "Missed") {
+            $newStatus = 'NotQualified';
+        } else {
+            // Check if at least one course qualified
+            $hasQualified = false;
+            foreach ($courseResults as $result) {
+                if ($result['status'] === 'Qualified') {
+                    $hasQualified = true;
+                    break;
+                }
+            }
+
+            // Update applicant status
+            $newStatus = $hasQualified ? 'Qualified' : 'NotQualified';
+        }
         
         if ($applicant->status !== $newStatus) {
             $applicant->status = $newStatus;

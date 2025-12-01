@@ -29,17 +29,16 @@ class EmailController extends Controller
         try {
             $username = $applicant->applicantUser->username;
             
-            // Extract password from username/app_ref_no: <year>-<sequence>
-            // Username format: {citycode}-{year}{sequence} (lowercase)
-            // Password format: {year}-{sequence}
-            $parts = explode('-', $username);
-            if (count($parts) === 2 && strlen($parts[1]) === 7) {
-                $year = substr($parts[1], 0, 2); // First 2 digits
-                $sequence = substr($parts[1], 2, 5); // Last 5 digits
-                $temporaryPassword = "{$year}-{$sequence}";
-            } else {
-                // Fallback: use username if parsing fails
-                $temporaryPassword = $username;
+            // Use existing plain_password from database
+            $password = $applicant->applicantUser->plain_password;
+            
+            // If plain_password is not set (legacy accounts), generate a new one
+            if (!$password) {
+                $password = generateRandomPassword();
+                $applicant->applicantUser->update([
+                    'password' => Hash::make($password),
+                    'plain_password' => $password,
+                ]);
             }
             
             $campusName = $applicant->campus->campus_name ?? 'N/A';
@@ -48,7 +47,7 @@ class EmailController extends Controller
                 new ApplicantAccountCreatedMail(
                     $applicant,
                     $username,
-                    $temporaryPassword,
+                    $password,
                     $campusName
                 )
             );

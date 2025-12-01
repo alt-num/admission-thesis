@@ -61,13 +61,16 @@
                     </button>
                 </form>
             @endif
-            <a href="{{ route('admission.applicants.edit', $applicant) }}" 
-               class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                Edit Applicant
-            </a>
+            @if(!$applicant->needs_revision)
+                <button type="button" 
+                        onclick="openReturnForRevisionModal()"
+                        class="inline-flex items-center px-4 py-2 bg-yellow-600 text-white text-sm font-medium rounded-lg hover:bg-yellow-700 transition-colors">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Return for Revision
+                </button>
+            @endif
             <a href="{{ route('admission.applicants.index') }}" 
                class="inline-flex items-center px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors">
                 Back to List
@@ -77,6 +80,43 @@
 
     <!-- Two Column Layout -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- ID Photo Section -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold text-gray-900">ID Photo</h2>
+                @if($applicant->photo_path && !$applicant->examAttempts()->exists())
+                    <button type="button" 
+                            onclick="openRequestPhotoModal()"
+                            class="inline-flex items-center px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition-colors">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                        Request New Photo
+                    </button>
+                @endif
+            </div>
+            @if($applicant->photo_path)
+                <div class="flex justify-center">
+                    <a href="{{ asset('storage/' . $applicant->photo_path) }}" target="_blank" class="block">
+                        <img src="{{ asset('storage/' . $applicant->photo_path) }}" 
+                             alt="Applicant ID Photo" 
+                             class="w-48 h-48 object-cover rounded-lg border border-gray-300 hover:opacity-90 transition-opacity cursor-pointer">
+                    </a>
+                </div>
+                <p class="mt-2 text-sm text-gray-500 text-center">Click to view full size</p>
+            @else
+                <div class="text-center py-8">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <p class="mt-2 text-sm text-gray-500">No photo uploaded</p>
+                </div>
+            @endif
+            @if($applicant->examAttempts()->exists())
+                <p class="mt-2 text-sm text-yellow-600 text-center">Photo cannot be changed after exam is taken</p>
+            @endif
+        </div>
+
         <!-- Personal Information -->
         <div class="bg-white rounded-lg shadow p-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">Personal Information</h2>
@@ -95,7 +135,18 @@
                 </div>
                 <div>
                     <dt class="text-sm font-medium text-gray-500">Email</dt>
-                    <dd class="mt-1 text-sm text-gray-900">{{ $applicant->email }}</dd>
+                    <dd class="mt-1 text-sm text-gray-900 flex items-center">
+                        <span>{{ $applicant->email }}</span>
+                        @if($applicant->applicantUser && !$applicant->isProfileComplete())
+                            <button type="button"
+                                    onclick="openEditEmailModal()"
+                                    class="ml-2 text-indigo-600 hover:text-indigo-900">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                            </button>
+                        @endif
+                    </dd>
                 </div>
                 <div>
                     <dt class="text-sm font-medium text-gray-500">Contact Number</dt>
@@ -216,6 +267,10 @@
                                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                                                         Qualified ({{ number_format($courseResult->score_value, 2) }}%)
                                                     </span>
+                                                @elseif($courseResult->result_status === 'Missed')
+                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                                                        Missed Exam
+                                                    </span>
                                                 @else
                                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
                                                         Not Qualified ({{ number_format($courseResult->score_value, 2) }}%)
@@ -247,35 +302,6 @@
         </div>
     </div>
 
-    <!-- Exam Status -->
-    @if($applicant->examAttempts->isNotEmpty())
-        <div class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Exam Status</h2>
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Exam</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Started At</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Finished At</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Score</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        @foreach($applicant->examAttempts as $attempt)
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $attempt->exam->title ?? 'N/A' }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $attempt->started_at->format('M d, Y h:i A') }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $attempt->finished_at ? $attempt->finished_at->format('M d, Y h:i A') : 'In Progress' }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">{{ $attempt->score_total ?? '0.00' }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    @endif
-
     <!-- Course Evaluation Results -->
     <div class="bg-white rounded-lg shadow p-6">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">Course Evaluation Results</h2>
@@ -303,12 +329,18 @@
                                     <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                                         Qualified
                                     </span>
+                                    <p class="text-xs text-gray-500 mt-1">Score: {{ number_format($courseResult->score_value, 2) }}%</p>
+                                @elseif($courseResult->result_status === 'Missed')
+                                    <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                                        Missed Exam
+                                    </span>
+                                    <p class="text-xs text-gray-500 mt-1">Exam not completed</p>
                                 @else
                                     <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-red-100 text-red-800">
                                         Not Qualified
                                     </span>
+                                    <p class="text-xs text-gray-500 mt-1">Score: {{ number_format($courseResult->score_value, 2) }}%</p>
                                 @endif
-                                <p class="text-xs text-gray-500 mt-1">Score: {{ number_format($courseResult->score_value, 2) }}%</p>
                             @else
                                 <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
                                     Not evaluated
@@ -584,6 +616,141 @@ document.getElementById('resetModal').addEventListener('click', function(e) {
         closeResetModal();
     }
 });
+
+function openRequestPhotoModal() {
+    document.getElementById('requestPhotoModal').classList.remove('hidden');
+}
+
+function closeRequestPhotoModal() {
+    document.getElementById('requestPhotoModal').classList.add('hidden');
+}
+
+// Close modal when clicking outside
+document.getElementById('requestPhotoModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeRequestPhotoModal();
+    }
+});
+
+function openReturnForRevisionModal() {
+    document.getElementById('returnForRevisionModal').classList.remove('hidden');
+}
+
+function closeReturnForRevisionModal() {
+    document.getElementById('returnForRevisionModal').classList.add('hidden');
+}
+
+// Close modal when clicking outside
+document.getElementById('returnForRevisionModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeReturnForRevisionModal();
+    }
+});
+</script>
+
+<!-- Return for Revision Modal -->
+<div id="returnForRevisionModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Return for Revision</h3>
+            <p class="text-sm text-gray-600 mb-6">Send this applicant's form back for revision?</p>
+            <div class="flex justify-end space-x-3">
+                <button type="button" 
+                        onclick="closeReturnForRevisionModal()"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                    Cancel
+                </button>
+                <form method="POST" action="{{ route('admission.applicants.return-for-revision', $applicant) }}" id="returnForRevisionForm">
+                    @csrf
+                    <button type="submit" 
+                            class="px-4 py-2 text-sm font-medium text-white bg-yellow-600 rounded-lg hover:bg-yellow-700 transition-colors">
+                        Confirm
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Request New Photo Modal -->
+<div id="requestPhotoModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Request New Photo</h3>
+            <p class="text-sm text-gray-600 mb-6">Request the applicant to submit a new photo? Their current photo will be removed.</p>
+            <div class="flex justify-end space-x-3">
+                <button type="button" 
+                        onclick="closeRequestPhotoModal()"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                    Cancel
+                </button>
+                <form method="POST" action="{{ route('admission.applicants.request-new-photo', $applicant) }}" id="requestPhotoForm">
+                    @csrf
+                    <button type="submit" 
+                            class="px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 transition-colors">
+                        Confirm
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Email Modal -->
+@if($applicant->applicantUser && !$applicant->isProfileComplete())
+<div id="editEmailModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <form method="POST" action="{{ route('admission.applicants.updateEmail', $applicant->applicant_id) }}">
+            @csrf
+            @method('PUT')
+            <div class="p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Edit Email</h3>
+                <div class="mb-4">
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-2">New Email</label>
+                    <input type="email" 
+                           name="email" 
+                           id="email" 
+                           value="{{ old('email', $applicant->email) }}"
+                           required
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    @error('email')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" 
+                            onclick="closeEditEmailModal()"
+                            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" 
+                            class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors">
+                        Save
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
+
+<script>
+function openEditEmailModal() {
+    document.getElementById('editEmailModal').classList.remove('hidden');
+}
+
+function closeEditEmailModal() {
+    document.getElementById('editEmailModal').classList.add('hidden');
+}
+
+// Close modal when clicking outside
+@if($applicant->applicantUser && !$applicant->isProfileComplete())
+document.getElementById('editEmailModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeEditEmailModal();
+    }
+});
+@endif
 </script>
 @endsection
 

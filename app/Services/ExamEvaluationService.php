@@ -19,12 +19,17 @@ class ExamEvaluationService
     public static function evaluate(Applicant $applicant, float $scorePercentage): void
     {
         DB::transaction(function () use ($applicant, $scorePercentage) {
+            // Check exam status first
+            $examStatus = $applicant->examStatus();
+
             // Retrieve all preferred courses
             $preferredCourses = [
                 $applicant->preferred_course_1,
                 $applicant->preferred_course_2,
                 $applicant->preferred_course_3,
             ];
+
+            $hasQualified = false;
 
             // For each preferred course
             foreach ($preferredCourses as $courseId) {
@@ -37,17 +42,21 @@ class ExamEvaluationService
                     continue; // Skip if course doesn't exist
                 }
 
-                // Get passing score for the course
-                $passingScore = $course->passing_score;
-
-                // Determine result status
-                // If passing_score is null → result = 'Qualified' (no minimum requirement)
-                if ($passingScore === null) {
-                    $resultStatus = 'Qualified';
-                } elseif ($scorePercentage >= $passingScore) {
-                    $resultStatus = 'Qualified';
+                // Determine result status based on exam status
+                if ($examStatus === "Missed") {
+                    $resultStatus = 'Missed';
                 } else {
-                    $resultStatus = 'NotQualified';
+                    // Exam was completed, evaluate based on score
+                    $passingScore = $course->passing_score;
+
+                    // If passing_score is null, course does not evaluate score BUT attendance is still required
+                    if ($passingScore === null) {
+                        $resultStatus = 'Qualified';
+                    } elseif ($scorePercentage >= $passingScore) {
+                        $resultStatus = 'Qualified';
+                    } else {
+                        $resultStatus = 'NotQualified';
+                    }
                 }
 
                 // Check if result already exists for this applicant and course
@@ -59,7 +68,7 @@ class ExamEvaluationService
                     // Update existing result
                     $existingResult->update([
                         'result_status' => $resultStatus,
-                        'score_value' => $scorePercentage,
+                        'score_value' => $examStatus === "Missed" ? 0 : $scorePercentage,
                     ]);
                 } else {
                     // Create new result
@@ -67,15 +76,33 @@ class ExamEvaluationService
                         'applicant_id' => $applicant->applicant_id,
                         'course_id' => $courseId,
                         'result_status' => $resultStatus,
-                        'score_value' => $scorePercentage,
+                        'score_value' => $examStatus === "Missed" ? 0 : $scorePercentage,
                     ]);
+                }
+
+                // Track if any course qualified
+                if ($resultStatus === 'Qualified') {
+                    $hasQualified = true;
                 }
             }
 
-            // Update applicant status to 'Pending' (exam taken, awaiting evaluation)
-            $applicant->update([
-                'status' => 'Pending',
-            ]);
+            // Update applicant status based on exam status and results
+            if ($examStatus === "Missed") {
+                // Missed exam = cannot qualify for ANY course
+                $applicant->update([
+                    'status' => 'NotQualified',
+                ]);
+            } elseif ($hasQualified) {
+                // At least one course qualified
+                $applicant->update([
+                    'status' => 'Qualified',
+                ]);
+            } else {
+                // Exam completed but no courses qualified
+                $applicant->update([
+                    'status' => 'NotQualified',
+                ]);
+            }
         });
     }
 }

@@ -32,6 +32,17 @@ class LoginController extends Controller
             'username' => $request->username,
             'password' => $request->password,
         ], $request->boolean('remember'))) {
+            // Check if employee is active before allowing login
+            $admissionUser = Auth::guard('admission')->user();
+            if ($admissionUser && $admissionUser->employee) {
+                if (strtolower($admissionUser->employee->status) !== 'active') {
+                    Auth::guard('admission')->logout();
+                    return back()->withErrors([
+                        'username' => 'Your account is inactive. Please contact the system administrator.',
+                    ])->withInput($request->only('username'));
+                }
+            }
+            
             $request->session()->regenerate();
             return redirect()->intended('/admission/dashboard');
         }

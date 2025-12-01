@@ -76,6 +76,11 @@ class EmployeeController extends Controller
             abort(403, 'Only Admin can create login accounts.');
         }
 
+        // Check if employee is active
+        if (strtolower($employee->status) !== 'active') {
+            return back()->with('error', 'Cannot create an account for an inactive employee.');
+        }
+
         // Check if account already exists
         if ($employee->admissionUser) {
             return back()->with('error', 'Employee already has a login account.');
@@ -94,9 +99,8 @@ class EmployeeController extends Controller
             $counter++;
         }
 
-        // Generate password: ESSU-##### (5 random digits)
-        $randomDigits = str_pad(rand(0, 99999), 5, '0', STR_PAD_LEFT);
-        $password = 'ESSU-' . $randomDigits;
+        // Generate password using unified generator
+        $password = generateRandomPassword();
         $hashedPassword = Hash::make($password);
 
         // Create admission user
@@ -104,6 +108,7 @@ class EmployeeController extends Controller
             'employee_id' => $employee->employee_id,
             'username' => $username,
             'password' => $hashedPassword,
+            'plain_password' => $password,
             'role' => 'Staff', // Default role
         ]);
 
@@ -160,12 +165,14 @@ class EmployeeController extends Controller
             return back()->with('error', 'Employee does not have a login account.');
         }
 
-        // Generate new password
-        $randomDigits = str_pad(rand(0, 99999), 5, '0', STR_PAD_LEFT);
-        $password = 'ESSU-' . $randomDigits;
+        // Generate new password using unified generator
+        $password = generateRandomPassword();
         $hashedPassword = Hash::make($password);
 
-        $employee->admissionUser->update(['password' => $hashedPassword]);
+        $employee->admissionUser->update([
+            'password' => $hashedPassword,
+            'plain_password' => $password,
+        ]);
 
         return back()->with('success', "Password reset successfully.\nNew Password: {$password}");
     }

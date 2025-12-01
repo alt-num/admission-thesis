@@ -76,15 +76,21 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 @php
+                                    $statusLabels = [
+                                        'Pending' => 'Pending',
+                                        'Qualified' => 'Qualified',
+                                        'NotQualified' => 'Not Qualified',
+                                    ];
                                     $statusColors = [
                                         'Pending' => 'bg-yellow-100 text-yellow-800',
                                         'Qualified' => 'bg-green-100 text-green-800',
                                         'NotQualified' => 'bg-red-100 text-red-800',
                                     ];
+                                    $label = $statusLabels[$applicant->status] ?? $applicant->status;
                                     $color = $statusColors[$applicant->status] ?? 'bg-gray-100 text-gray-800';
                                 @endphp
                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $color }}">
-                                    {{ $applicant->status }}
+                                    {{ $label }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -96,18 +102,6 @@
                                        class="text-blue-600 hover:text-blue-900">
                                         View
                                     </a>
-                                    <span class="text-gray-300">|</span>
-                                    <a href="{{ route('admission.applicants.edit', $applicant) }}" 
-                                       class="text-indigo-600 hover:text-indigo-900">
-                                        Edit
-                                    </a>
-                                    @if($applicant->applicantUser)
-                                        <span class="text-gray-300">|</span>
-                                        <button onclick="openSendEmailModal({{ $applicant->applicant_id }}, '{{ $applicant->email }}')" 
-                                                class="text-green-600 hover:text-green-900">
-                                            Send Email
-                                        </button>
-                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -133,52 +127,5 @@
         @endif
     </div>
 </div>
-
-<!-- Send Email Modal -->
-<div id="send-email-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="bg-white rounded-lg shadow-xl w-[90%] md:w-[500px] lg:w-[600px] mx-4">
-        <div class="p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Send Login Credentials</h3>
-            <p class="text-sm text-gray-600 mb-6">Send login credentials to <span id="modal-email" class="font-medium"></span>?</p>
-            <div class="flex justify-end space-x-3">
-                <button onclick="closeSendEmailModal()" 
-                        class="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors">
-                    Cancel
-                </button>
-                <form id="send-email-form" method="POST" class="inline">
-                    @csrf
-                    <button type="submit" 
-                            class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors">
-                        Confirm
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-    function openSendEmailModal(applicantId, email) {
-        const modal = document.getElementById('send-email-modal');
-        const form = document.getElementById('send-email-form');
-        const emailSpan = document.getElementById('modal-email');
-        
-        emailSpan.textContent = email;
-        form.action = `/admission/applicants/${applicantId}/send-credentials`;
-        modal.classList.remove('hidden');
-    }
-    
-    function closeSendEmailModal() {
-        const modal = document.getElementById('send-email-modal');
-        modal.classList.add('hidden');
-    }
-    
-    // Close modal when clicking outside
-    document.getElementById('send-email-modal').addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeSendEmailModal();
-        }
-    });
-</script>
 @endsection
 

@@ -74,8 +74,15 @@
         @if($employee->admissionUser)
             <!-- Account Exists -->
             <div class="space-y-4">
-                <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <p class="text-sm text-green-800 font-medium mb-3">Login account exists</p>
+                <div class="p-4 {{ strtolower($employee->status) === 'active' ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200' }} border rounded-lg">
+                    <p class="text-sm {{ strtolower($employee->status) === 'active' ? 'text-green-800' : 'text-gray-600' }} font-medium mb-3">
+                        Login account exists
+                        @if(strtolower($employee->status) !== 'active')
+                            <span class="ml-2 px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                                Employee Inactive
+                            </span>
+                        @endif
+                    </p>
                     <dl class="space-y-2">
                         <div class="flex items-center justify-between">
                             <dt class="text-sm font-medium text-gray-700">Username:</dt>
@@ -164,17 +171,23 @@
                 <p class="text-sm text-gray-600 mb-4">This employee does not have a login account.</p>
                 
                 @if($isAdmin)
-                    <form method="POST" action="{{ route('admission.employees.create-account', $employee) }}" class="inline">
-                        @csrf
-                        <button type="submit" 
-                                onclick="return confirm('Create login account for this employee?')"
-                                class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                            </svg>
-                            Create Login Account
-                        </button>
-                    </form>
+                    @if(strtolower($employee->status) === 'active')
+                        <form method="POST" action="{{ route('admission.employees.create-account', $employee) }}" class="inline">
+                            @csrf
+                            <button type="submit" 
+                                    onclick="return confirm('Create login account for this employee?')"
+                                    class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                </svg>
+                                Create Login Account
+                            </button>
+                        </form>
+                    @else
+                        <div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <p class="text-sm text-yellow-800">Cannot create account for an inactive employee.</p>
+                        </div>
+                    @endif
                 @else
                     <div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                         <p class="text-sm text-yellow-800">Only Admin can create login accounts.</p>

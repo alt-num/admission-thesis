@@ -35,7 +35,7 @@ class Employees extends Seeder
                 'first_name' => 'Jane',
                 'middle_name' => 'Marie',
                 'last_name' => 'Johnson',
-                'status' => 'active',
+                'status' => 'inactive',
                 'department_id' => 1,
                 'created_at' => $now,
                 'updated_at' => $now,

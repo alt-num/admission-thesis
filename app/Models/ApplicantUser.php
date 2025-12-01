@@ -19,6 +19,7 @@ class ApplicantUser extends Authenticatable
         'applicant_id',
         'username',
         'password',
+        'plain_password',
         'account_status',
     ];
 

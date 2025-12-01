@@ -52,6 +52,23 @@ class EnsureApplicantProfileIsComplete
             }
         }
 
+        // Check if photo is uploaded (required before exam)
+        if (empty($applicant->photo_path)) {
+            return redirect()->route('applicant.profile.show')
+                ->with('warning', 'Please upload your ID photo to continue.');
+        }
+
+        // Check if application needs revision
+        $hasExamAttempt = $applicant->examAttempts()->exists();
+        if ($applicant->needs_revision) {
+            if (!$hasExamAttempt) {
+                // Before exam: must fix form before taking exam
+                return redirect()->route('applicant.profile.show')
+                    ->with('warning', 'Please correct your application form before taking the exam.');
+            }
+            // After exam: allow dashboard access (only minor fields editable)
+        }
+
         // Check if declaration is missing or incomplete
         $declaration = $applicant->declaration;
         

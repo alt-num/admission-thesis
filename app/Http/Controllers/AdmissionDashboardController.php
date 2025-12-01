@@ -5,11 +5,21 @@ namespace App\Http\Controllers;
 use App\Models\Applicant;
 use App\Models\Exam;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class AdmissionDashboardController extends Controller
 {
     public function index()
     {
+        // Check if employee is active
+        $admissionUser = Auth::guard('admission')->user();
+        if ($admissionUser && $admissionUser->employee) {
+            if (strtolower($admissionUser->employee->status) !== 'active') {
+                Auth::guard('admission')->logout();
+                return redirect()->route('login')->with('error', 'Your account is now inactive.');
+            }
+        }
+
         $totalApplicants = Applicant::count();
         $pendingApplicants = Applicant::where('status', 'Pending')->count();
         $qualifiedApplicants = Applicant::where('status', 'Qualified')->count();

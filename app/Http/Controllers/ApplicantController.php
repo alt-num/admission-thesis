@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Mail\ApplicantAccountCreatedMail;
+use App\Mail\ApplicationNeedsRevisionMail;
 use App\Mail\ExamScheduleAssignedMail;
+use App\Mail\PhotoRejectedMail;
 use App\Models\Applicant;
 use App\Models\ApplicantExamSchedule;
 use App\Models\ApplicantUser;
@@ -16,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class ApplicantController extends Controller
@@ -27,7 +30,7 @@ class ApplicantController extends Controller
     {
         $search = $request->query('search');
 
-        $applicants = Applicant::with(['campus', 'preferredCourse1', 'preferredCourse2', 'preferredCourse3', 'applicantUser'])
+        $applicants = Applicant::with(['campus', 'preferredCourse1', 'preferredCourse2', 'preferredCourse3', 'applicantUser', 'courseResults', 'examAttempts', 'examSchedules.examSchedule'])
             ->when($search, function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('app_ref_no', 'ilike', "%{$search}%")
@@ -43,6 +46,11 @@ class ApplicantController extends Controller
             ->paginate(10)
             ->withQueryString();
 
+        // Auto-evaluate results for each applicant
+        foreach ($applicants as $applicant) {
+            $applicant->evaluateResultsIfNeeded();
+        }
+
         return view('admission.applicants.index', compact('applicants'));
     }
 
@@ -52,7 +60,6 @@ class ApplicantController extends Controller
     public function create()
     {
         $campuses = Campus::orderBy('campus_name')->get();
-        $courses = Course::with('department')->orderBy('course_name')->get();
 
         // Get MAIN campus ID for default selection
         $mainCampus = Campus::where('campus_code', 'MAIN')->first();
@@ -74,7 +81,7 @@ class ApplicantController extends Controller
                 ->get();
         }
 
-        return view('admission.applicants.create', compact('campuses', 'courses', 'defaultCampusId', 'defaultSchoolYear', 'schedules', 'activeExam'));
+        return view('admission.applicants.create', compact('campuses', 'defaultCampusId', 'defaultSchoolYear', 'schedules', 'activeExam'));
     }
 
     /**
@@ -83,17 +90,11 @@ class ApplicantController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'first_name' => 'required|string|max:255',
-            'middle_name' => 'nullable|string|max:255',
-            'last_name' => 'required|string|max:255',
             'app_number' => 'required|integer|min:1|max:99999',
             'app_ref_no' => 'nullable|string', // Hidden field, will be regenerated server-side
             'email' => 'required|email|unique:applicants,email',
             'campus_id' => 'required|exists:campuses,campus_id',
             'school_year' => 'required|string',
-            'preferred_course_1' => 'nullable|exists:courses,course_id',
-            'preferred_course_2' => 'nullable|exists:courses,course_id',
-            'preferred_course_3' => 'nullable|exists:courses,course_id',
             'schedule_id' => 'nullable|exists:exam_schedules,schedule_id',
         ]);
 
@@ -114,18 +115,22 @@ class ApplicantController extends Controller
                 ->withInput();
         }
 
-        // Create applicant
+        // Auto-generate placeholder names
+        $firstName = 'Applicant';
+        $lastName = 'Ref-' . $appRefNo;
+
+        // Create applicant with placeholder names
         $applicant = Applicant::create([
             'app_ref_no' => $appRefNo,
-            'first_name' => $validated['first_name'],
-            'middle_name' => $validated['middle_name'] ?? null,
-            'last_name' => $validated['last_name'],
+            'first_name' => $firstName,
+            'middle_name' => null,
+            'last_name' => $lastName,
             'email' => $validated['email'],
             'campus_id' => $validated['campus_id'],
             'school_year' => $validated['school_year'],
-            'preferred_course_1' => $validated['preferred_course_1'] ?? null,
-            'preferred_course_2' => $validated['preferred_course_2'] ?? null,
-            'preferred_course_3' => $validated['preferred_course_3'] ?? null,
+            'preferred_course_1' => null,
+            'preferred_course_2' => null,
+            'preferred_course_3' => null,
             'status' => 'Pending',
             'registered_by' => Auth::guard('admission')->id(),
         ]);
@@ -133,24 +138,15 @@ class ApplicantController extends Controller
         // Generate username (using app_ref_no)
         $username = strtolower($appRefNo);
         
-        // Generate password: <year>-<sequence> (e.g., "25-00003" from "BOR-2500003")
-        // Extract year (2 digits) and sequence (5 digits) from app_ref_no
-        // Format: {cityCode}-{year}{sequence}
-        $parts = explode('-', $appRefNo);
-        if (count($parts) === 2 && strlen($parts[1]) === 7) {
-            $year = substr($parts[1], 0, 2); // First 2 digits
-            $sequence = substr($parts[1], 2, 5); // Last 5 digits
-            $defaultPassword = "{$year}-{$sequence}";
-        } else {
-            // Fallback to old format if parsing fails
-            $defaultPassword = strtolower($appRefNo);
-        }
+        // Generate password using unified generator
+        $password = generateRandomPassword();
 
         // Create ApplicantUser
         ApplicantUser::create([
             'applicant_id' => $applicant->applicant_id,
             'username' => $username,
-            'password' => Hash::make($defaultPassword),
+            'password' => Hash::make($password),
+            'plain_password' => $password,
             'account_status' => 'Active',
         ]);
 
@@ -159,7 +155,7 @@ class ApplicantController extends Controller
             new ApplicantAccountCreatedMail(
                 $applicant,
                 $username,
-                $defaultPassword,
+                $password,
                 $campus->campus_name
             )
         );
@@ -198,14 +194,17 @@ class ApplicantController extends Controller
 
         return redirect()
             ->route('admission.applicants.index')
-            ->with('success', "Applicant registered successfully! Username: {$username}, Password: {$defaultPassword}");
+            ->with('success', "Applicant registered successfully! Login credentials have been sent to the their email.");
     }
 
     /**
      * Display the specified applicant.
-     */
+     */ 
     public function show(Applicant $applicant)
     {
+        // Auto-evaluate results before loading
+        $applicant->evaluateResultsIfNeeded();
+
         $applicant->load([
             'campus',
             'preferredCourse1',
@@ -228,50 +227,6 @@ class ApplicantController extends Controller
         $eligibility = $this->computeCourseEligibility($applicant);
 
         return view('admission.applicants.show', compact('applicant', 'eligibility', 'antiCheatLogs'));
-    }
-
-    /**
-     * Show the form for editing the specified applicant.
-     */
-    public function edit(Applicant $applicant)
-    {
-        $applicant->load(['campus', 'preferredCourse1', 'preferredCourse2', 'preferredCourse3']);
-        $courses = Course::with('department')->orderBy('course_name')->get();
-
-        return view('admission.applicants.edit', compact('applicant', 'courses'));
-    }
-
-    /**
-     * Update the specified applicant in storage.
-     */
-    public function update(Request $request, Applicant $applicant)
-    {
-        $validated = $request->validate([
-            'first_name' => 'required|string|max:255',
-            'middle_name' => 'nullable|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:applicants,email,' . $applicant->applicant_id . ',applicant_id',
-            'contact_number' => 'nullable|string|max:32',
-            'preferred_course_1' => 'nullable|exists:courses,course_id',
-            'preferred_course_2' => 'nullable|exists:courses,course_id',
-            'preferred_course_3' => 'nullable|exists:courses,course_id',
-        ]);
-
-        // app_ref_no is NOT editable - it remains unchanged
-        $applicant->update([
-            'first_name' => $validated['first_name'],
-            'middle_name' => $validated['middle_name'] ?? null,
-            'last_name' => $validated['last_name'],
-            'email' => $validated['email'],
-            'contact_number' => $validated['contact_number'] ?? null,
-            'preferred_course_1' => $validated['preferred_course_1'] ?? null,
-            'preferred_course_2' => $validated['preferred_course_2'] ?? null,
-            'preferred_course_3' => $validated['preferred_course_3'] ?? null,
-        ]);
-
-        return redirect()
-            ->route('admission.applicants.show', $applicant)
-            ->with('success', 'Applicant updated successfully!');
     }
 
     /**
@@ -324,17 +279,8 @@ class ApplicantController extends Controller
             return back()->with('error', 'Username already exists. Please contact system administrator.');
         }
 
-        // Generate password: <year>-<sequence> (e.g., "25-00003" from "BOR-2500003")
-        // Extract year (2 digits) and sequence (5 digits) from app_ref_no
-        $parts = explode('-', $applicant->app_ref_no);
-        if (count($parts) === 2 && strlen($parts[1]) === 7) {
-            $year = substr($parts[1], 0, 2); // First 2 digits
-            $sequence = substr($parts[1], 2, 5); // Last 5 digits
-            $newPassword = "{$year}-{$sequence}";
-        } else {
-            // Fallback to old format if parsing fails
-            $newPassword = strtolower($applicant->app_ref_no);
-        }
+        // Generate new password using unified generator
+        $newPassword = generateRandomPassword();
 
         // Hash password before saving
         $hashedPassword = Hash::make($newPassword);
@@ -343,6 +289,7 @@ class ApplicantController extends Controller
         $applicant->applicantUser->update([
             'username' => $username,
             'password' => $hashedPassword,
+            'plain_password' => $newPassword,
         ]);
 
         // Re-send email notification with new credentials
@@ -362,7 +309,132 @@ class ApplicantController extends Controller
             return back()->with('warning', 'Credentials reset successfully, but email notification failed to send.');
         }
 
-        return back()->with('success', 'Applicant credentials have been reset and emailed.');
+        return back()->with('success', "Username and password reset successfully.\nUsername: {$username}\nPassword: {$newPassword}");
+    }
+
+    /**
+     * Request applicant to submit a new photo.
+     */
+    public function requestNewPhoto(Applicant $applicant)
+    {
+        // Check if applicant has taken exam
+        if ($applicant->examAttempts()->exists()) {
+            return back()->with('error', 'Cannot request new photo. Applicant has already taken the exam.');
+        }
+
+        // Delete old photo file if it exists
+        if ($applicant->photo_path && Storage::disk('public')->exists($applicant->photo_path)) {
+            Storage::disk('public')->delete($applicant->photo_path);
+        }
+
+        // Set photo_path to null
+        $applicant->photo_path = null;
+        $applicant->save();
+
+        // Send email notification
+        try {
+            Mail::to($applicant->email)->send(
+                new PhotoRejectedMail($applicant)
+            );
+        } catch (\Exception $e) {
+            \Log::error('Failed to send photo rejection email: ' . $e->getMessage());
+            return back()->with('warning', 'Photo reset successfully, but email notification failed to send.');
+        }
+
+        return back()->with('success', 'Photo reset request sent. Applicant must upload a new photo.');
+    }
+
+    /**
+     * Update applicant email (only if profile is not complete).
+     */
+    public function updateEmail(Request $request, Applicant $applicant)
+    {
+        // Check if user is Admin or Staff
+        $user = Auth::guard('admission')->user();
+        if (!$user || !in_array($user->role, ['Admin', 'Staff'])) {
+            abort(403, 'Unauthorized access.');
+        }
+
+        $request->validate([
+            'email' => 'required|email|max:255|unique:applicants,email,' . $applicant->applicant_id . ',applicant_id'
+        ]);
+
+        // Check if profile is complete - if so, email cannot be changed
+        if ($applicant->isProfileComplete()) {
+            return back()->with('error', 'Email can no longer be changed after the applicant has logged in.');
+        }
+
+        // Update email in applicants table
+        $applicant->email = $request->email;
+        $applicant->save();
+
+        // Resend login credentials to the new email
+        if ($applicant->applicantUser) {
+            try {
+                $campusName = $applicant->campus->campus_name ?? 'N/A';
+                $username = $applicant->applicantUser->username;
+                $password = $applicant->applicantUser->plain_password;
+
+                // If plain_password is not set (legacy accounts), generate a new one
+                if (!$password) {
+                    $password = generateRandomPassword();
+                    $applicant->applicantUser->update([
+                        'password' => Hash::make($password),
+                        'plain_password' => $password,
+                    ]);
+                }
+
+                Mail::to($applicant->email)->send(
+                    new ApplicantAccountCreatedMail(
+                        $applicant,
+                        $username,
+                        $password,
+                        $campusName
+                    )
+                );
+            } catch (\Exception $e) {
+                \Log::error('Failed to send email update notification: ' . $e->getMessage());
+                return back()->with('warning', 'Email updated, but failed to send login credentials. Please resend manually.');
+            }
+        }
+
+        return back()->with('success', 'Email updated and login credentials resent.');
+    }
+
+    /**
+     * Return applicant's form for revision.
+     */
+    public function returnForRevision(Applicant $applicant)
+    {
+        // Check if applicant exists
+        if (!$applicant) {
+            abort(404, 'Applicant not found.');
+        }
+
+        // Reset password when returning for revision
+        if ($applicant->applicantUser) {
+            $newPassword = generateRandomPassword();
+            $applicant->applicantUser->update([
+                'password' => Hash::make($newPassword),
+                'plain_password' => $newPassword,
+            ]);
+        }
+
+        // Set needs_revision flag
+        $applicant->needs_revision = true;
+        $applicant->save();
+
+        // Send email notification
+        try {
+            Mail::to($applicant->email)->send(
+                new ApplicationNeedsRevisionMail($applicant)
+            );
+        } catch (\Exception $e) {
+            \Log::error('Failed to send revision email: ' . $e->getMessage());
+            return back()->with('warning', 'Application returned for revision, but email notification failed to send.');
+        }
+
+        return back()->with('success', 'Application returned for revision. Applicant has been notified.');
     }
 
     /**
