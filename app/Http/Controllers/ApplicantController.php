@@ -147,7 +147,7 @@ class ApplicantController extends Controller
             'username' => $username,
             'password' => Hash::make($password),
             'plain_password' => $password,
-            'account_status' => 'Active',
+            'account_status' => 'active',
         ]);
 
         // Send account creation email
@@ -567,5 +567,36 @@ class ApplicantController extends Controller
             'courses' => $courses,
             'final_recommendation' => $finalRecommendation,
         ];
+    }
+
+    /**
+     * Toggle flagged status for an applicant.
+     */
+    public function toggleFlagged(Applicant $applicant)
+    {
+        $applicant->status = ($applicant->status === 'Flagged')
+            ? 'Pending'
+            : 'Flagged';
+        $applicant->save();
+
+        return back()->with('success', 'Applicant flagged status updated.');
+    }
+
+    /**
+     * Toggle account status for an applicant user.
+     */
+    public function toggleAccountStatus(Applicant $applicant)
+    {
+        if (!$applicant->applicantUser) {
+            return back()->with('error', 'Applicant does not have a user account.');
+        }
+
+        $user = $applicant->applicantUser;
+        $user->account_status = ($user->account_status === 'active')
+            ? 'disabled'
+            : 'active';
+        $user->save();
+
+        return back()->with('success', 'Applicant account status updated.');
     }
 }

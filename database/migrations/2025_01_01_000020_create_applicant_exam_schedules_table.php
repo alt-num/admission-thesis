@@ -11,19 +11,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('applicant_course_results', function (Blueprint $table) {
-            $table->id('result_id');
+        Schema::create('applicant_exam_schedules', function (Blueprint $table) {
+            $table->id('id');
             $table->foreignId('applicant_id')
                 ->constrained('applicants', 'applicant_id')
                 ->cascadeOnUpdate()
-                ->cascadeOnDelete();
-            $table->foreignId('course_id')
-                ->constrained('courses', 'course_id')
+                ->restrictOnDelete();
+            $table->foreignId('schedule_id')
+                ->constrained('exam_schedules', 'schedule_id')
                 ->cascadeOnUpdate()
-                ->cascadeOnDelete();
-            $table->enum('result_status', ['Pass', 'Fail']);
-            $table->decimal('score_value', 5, 2);
+                ->restrictOnDelete();
+            $table->timestamp('assigned_at');
             $table->timestamps();
+
+            $table->unique(['applicant_id', 'schedule_id']);
         });
     }
 
@@ -32,6 +33,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('applicant_course_results');
+        Schema::dropIfExists('applicant_exam_schedules');
     }
 };
+

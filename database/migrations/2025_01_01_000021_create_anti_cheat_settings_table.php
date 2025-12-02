@@ -14,11 +14,7 @@ return new class extends Migration
     {
         Schema::create('anti_cheat_settings', function (Blueprint $table) {
             $table->id('setting_id');
-            
-            // Master toggle
             $table->boolean('enabled')->default(true);
-            
-            // Feature toggles
             $table->boolean('tab_switch_detection')->default(true);
             $table->boolean('focus_loss_violations')->default(true);
             $table->boolean('copy_paste_blocking')->default(true);
@@ -26,18 +22,15 @@ return new class extends Migration
             $table->boolean('devtools_hotkey_blocking')->default(true);
             $table->boolean('ip_change_logging')->default(true);
             $table->boolean('exam_code_required')->default(true);
-            
-            // Strictness controls
+            $table->boolean('refresh_detection')->default(true);
             $table->integer('max_focus_violations')->default(5);
             $table->integer('idle_timeout_minutes')->default(10);
-            $table->string('ip_check_strictness', 20)->default('log_only'); // log_only, warn, block
-            
-            // Developer bypass
+            $table->string('ip_check_strictness', 20)->default('log_only');
             $table->boolean('developer_bypass_enabled')->default(false);
-            
+            $table->boolean('monitoring_banner_enabled')->default(false);
             $table->timestamps();
         });
-        
+
         // Insert default settings (only if table is empty)
         if (DB::table('anti_cheat_settings')->count() === 0) {
             DB::table('anti_cheat_settings')->insert([
@@ -49,10 +42,12 @@ return new class extends Migration
                 'devtools_hotkey_blocking' => true,
                 'ip_change_logging' => true,
                 'exam_code_required' => true,
+                'refresh_detection' => true,
                 'max_focus_violations' => 5,
                 'idle_timeout_minutes' => 10,
                 'ip_check_strictness' => 'log_only',
                 'developer_bypass_enabled' => false,
+                'monitoring_banner_enabled' => false,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -67,3 +62,4 @@ return new class extends Migration
         Schema::dropIfExists('anti_cheat_settings');
     }
 };
+

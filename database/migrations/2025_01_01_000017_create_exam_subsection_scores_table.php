@@ -11,23 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('exam_answers', function (Blueprint $table) {
-            $table->id('answer_id');
+        Schema::create('exam_subsection_scores', function (Blueprint $table) {
+            $table->id('subsection_score_id');
             $table->foreignId('attempt_id')
                 ->constrained('exam_attempts', 'attempt_id')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete();
-            $table->foreignId('question_id')
-                ->constrained('exam_questions', 'question_id')
+            $table->foreignId('subsection_id')
+                ->constrained('exam_subsections', 'subsection_id')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete();
-            $table->foreignId('choice_id')
-                ->nullable()
-                ->constrained('exam_choices', 'choice_id')
-                ->cascadeOnUpdate()
-                ->nullOnDelete();
-            $table->boolean('answer_value')->nullable();
-            $table->boolean('is_correct')->default(false);
+            $table->decimal('score', 5, 2)->default(0);
             $table->timestamps();
         });
     }
@@ -37,6 +31,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('exam_answers');
+        Schema::dropIfExists('exam_subsection_scores');
     }
 };
+

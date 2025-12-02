@@ -11,8 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('exam_schedules', function (Blueprint $table) {
-            $table->string('location')->nullable()->after('capacity');
+        Schema::create('departments', function (Blueprint $table) {
+            $table->id('department_id');
+            $table->string('faculty_code')->unique();
+            $table->string('department_name');
+            $table->timestamps();
         });
     }
 
@@ -21,8 +24,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('exam_schedules', function (Blueprint $table) {
-            $table->dropColumn('location');
-        });
+        Schema::dropIfExists('departments');
     }
 };
+

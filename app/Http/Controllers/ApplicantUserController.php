@@ -32,7 +32,7 @@ class ApplicantUserController extends Controller
             'applicant_id' => 'required|exists:applicants,applicant_id',
             'username' => 'required|string|max:255|unique:applicant_users,username',
             'password' => 'required|string|min:8',
-            'account_status' => 'sometimes|string|in:active,inactive,suspended',
+            'account_status' => 'sometimes|string|in:active,disabled',
         ]);
 
         ApplicantUser::create($validated);
@@ -66,7 +66,7 @@ class ApplicantUserController extends Controller
             'applicant_id' => 'sometimes|exists:applicants,applicant_id',
             'username' => 'sometimes|string|max:255|unique:applicant_users,username,' . $applicantUser->user_id . ',user_id',
             'password' => 'sometimes|string|min:8',
-            'account_status' => 'sometimes|string|in:active,inactive,suspended',
+            'account_status' => 'sometimes|string|in:active,disabled',
         ]);
 
         $applicantUser->update($validated);

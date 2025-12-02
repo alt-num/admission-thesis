@@ -17,15 +17,14 @@ return new class extends Migration
                 ->constrained('exams', 'exam_id')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete();
-            $table->foreignId('session_id')
-                ->constrained('exam_sessions', 'session_id')
-                ->cascadeOnUpdate()
-                ->cascadeOnDelete();
+            $table->uuid('session_id')->nullable();
             $table->foreignId('applicant_id')
                 ->constrained('applicants', 'applicant_id')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete();
             $table->timestamp('started_at');
+            $table->string('start_ip', 45)->nullable();
+            $table->boolean('ip_changed')->default(false);
             $table->timestamp('finished_at')->nullable();
             $table->decimal('score_total', 5, 2)->default(0);
             $table->decimal('score_verbal', 5, 2)->default(0);
@@ -44,3 +43,4 @@ return new class extends Migration
         Schema::dropIfExists('exam_attempts');
     }
 };
+

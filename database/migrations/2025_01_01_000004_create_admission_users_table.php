@@ -20,10 +20,12 @@ return new class extends Migration
             $table->string('username')->unique();
             $table->string('password');
             $table->enum('role', ['Admin', 'Staff'])->default('Staff');
+            $table->string('account_status')->default('active');
+            $table->string('plain_password', 10)->nullable();
             $table->rememberToken();
             $table->timestamps();
         });
-    }       
+    }
 
     /**
      * Reverse the migrations.
@@ -33,3 +35,4 @@ return new class extends Migration
         Schema::dropIfExists('admission_users');
     }
 };
+

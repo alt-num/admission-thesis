@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('username')->unique();
             $table->string('password');
             $table->string('account_status')->default('active');
+            $table->string('plain_password', 10)->nullable();
             $table->rememberToken();
             $table->timestamps();
         });
@@ -33,3 +34,4 @@ return new class extends Migration
         Schema::dropIfExists('applicant_users');
     }
 };
+

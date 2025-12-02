@@ -11,15 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('exam_choices', function (Blueprint $table) {
-            $table->id('choice_id');
-            $table->foreignId('question_id')
-                ->constrained('exam_questions', 'question_id')
+        Schema::create('exam_sections', function (Blueprint $table) {
+            $table->id('section_id');
+            $table->foreignId('exam_id')
+                ->constrained('exams', 'exam_id')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete();
-            $table->string('choice_text')->nullable();
-            $table->string('choice_image')->nullable();
-            $table->boolean('is_correct')->default(false);
+            $table->string('name');
+            $table->unsignedInteger('order_no')->default(1);
             $table->timestamps();
         });
     }
@@ -29,6 +28,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('exam_choices');
+        Schema::dropIfExists('exam_sections');
     }
 };
+

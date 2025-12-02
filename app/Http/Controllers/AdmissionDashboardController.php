@@ -24,6 +24,7 @@ class AdmissionDashboardController extends Controller
         $pendingApplicants = Applicant::where('status', 'Pending')->count();
         $qualifiedApplicants = Applicant::where('status', 'Qualified')->count();
         $notQualifiedApplicants = Applicant::where('status', 'NotQualified')->count();
+        $flaggedApplicants = Applicant::where('status', 'Flagged')->count();
         $totalExams = Exam::count();
 
         return view('admission.dashboard', compact(

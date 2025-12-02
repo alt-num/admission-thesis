@@ -80,18 +80,27 @@
                                         'Pending' => 'Pending',
                                         'Qualified' => 'Qualified',
                                         'NotQualified' => 'Not Qualified',
+                                        'Flagged' => 'FLAGGED',
                                     ];
                                     $statusColors = [
                                         'Pending' => 'bg-yellow-100 text-yellow-800',
                                         'Qualified' => 'bg-green-100 text-green-800',
                                         'NotQualified' => 'bg-red-100 text-red-800',
+                                        'Flagged' => 'bg-red-200 text-red-900',
                                     ];
-                                    $label = $statusLabels[$applicant->status] ?? $applicant->status;
-                                    $color = $statusColors[$applicant->status] ?? 'bg-gray-100 text-gray-800';
+                                    // If flagged, show Flagged status and override others
+                                    $displayStatus = $applicant->status === 'Flagged' ? 'Flagged' : $applicant->status;
+                                    $label = $statusLabels[$displayStatus] ?? $displayStatus;
+                                    $color = $statusColors[$displayStatus] ?? 'bg-gray-100 text-gray-800';
                                 @endphp
                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $color }}">
                                     {{ $label }}
                                 </span>
+                                @if($applicant->applicantUser && strtolower($applicant->applicantUser->account_status) === 'disabled')
+                                    <span class="ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-200 text-gray-800">
+                                        DISABLED
+                                    </span>
+                                @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {{ $applicant->created_at->format('M d, Y') }}
@@ -102,6 +111,38 @@
                                        class="text-blue-600 hover:text-blue-900">
                                         View
                                     </a>
+                                    @if($applicant->status === 'Flagged')
+                                        <form method="POST" action="{{ route('admission.applicants.toggle-flagged', $applicant) }}" class="inline">
+                                            @csrf
+                                            <button type="submit" class="text-yellow-600 hover:text-yellow-900">
+                                                Unflag
+                                            </button>
+                                        </form>
+                                    @else
+                                        <form method="POST" action="{{ route('admission.applicants.toggle-flagged', $applicant) }}" class="inline">
+                                            @csrf
+                                            <button type="submit" class="text-red-600 hover:text-red-900">
+                                                Flag
+                                            </button>
+                                        </form>
+                                    @endif
+                                    @if($applicant->applicantUser)
+                                        @if(strtolower($applicant->applicantUser->account_status) === 'active')
+                                            <form method="POST" action="{{ route('admission.applicants.toggle-account-status', $applicant) }}" class="inline">
+                                                @csrf
+                                                <button type="submit" class="text-gray-600 hover:text-gray-900">
+                                                    Disable
+                                                </button>
+                                            </form>
+                                        @else
+                                            <form method="POST" action="{{ route('admission.applicants.toggle-account-status', $applicant) }}" class="inline">
+                                                @csrf
+                                                <button type="submit" class="text-green-600 hover:text-green-900">
+                                                    Enable
+                                                </button>
+                                            </form>
+                                        @endif
+                                    @endif
                                 </div>
                             </td>
                         </tr>

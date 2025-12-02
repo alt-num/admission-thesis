@@ -52,10 +52,19 @@ class LoginController extends Controller
             'username' => $request->username,
             'password' => $request->password,
         ], $request->boolean('remember'))) {
+            // Check account status before allowing login
+            $applicantUser = Auth::guard('applicant')->user();
+            if ($applicantUser && strtolower($applicantUser->account_status) !== 'active') {
+                Auth::guard('applicant')->logout();
+                return back()->withErrors([
+                    'username' => 'Your account is disabled. Please contact the system administrator.',
+                ])->withInput($request->only('username'));
+            }
+            
             $request->session()->regenerate();
             
             // Check if profile is complete
-            $applicant = Auth::guard('applicant')->user()->applicant;
+            $applicant = $applicantUser->applicant;
             
             // Check required profile fields
             $requiredFields = [

@@ -174,6 +174,11 @@ class Applicant extends Model
             }
 
             // Update applicant status
+            // Do NOT override applicants flagged for cheating
+            if ($this->status === 'Flagged') {
+                return;
+            }
+
             $newStatus = $hasQualified ? 'Qualified' : 'NotQualified';
             if ($this->status !== $newStatus) {
                 $this->status = $newStatus;
@@ -217,6 +222,11 @@ class Applicant extends Model
             }
 
             // Applicant missed exam → cannot qualify for ANY course
+            // Do NOT override applicants flagged for cheating
+            if ($this->status === 'Flagged') {
+                return;
+            }
+
             if ($this->status !== "NotQualified") {
                 $this->status = "NotQualified";
                 $this->save();

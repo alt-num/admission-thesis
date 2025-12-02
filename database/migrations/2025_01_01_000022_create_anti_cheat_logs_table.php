@@ -18,9 +18,10 @@ return new class extends Migration
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete();
             $table->foreignId('exam_attempt_id')
+                ->nullable()
                 ->constrained('exam_attempts', 'attempt_id')
                 ->cascadeOnUpdate()
-                ->cascadeOnDelete();
+                ->nullOnDelete();
             $table->string('event_type', 100);
             $table->json('event_details')->nullable();
             $table->timestamp('event_timestamp');
@@ -40,3 +41,4 @@ return new class extends Migration
         Schema::dropIfExists('anti_cheat_logs');
     }
 };
+

@@ -11,8 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('applicants', function (Blueprint $table) {
-            $table->string('photo_path')->nullable()->after('status');
+        Schema::create('exams', function (Blueprint $table) {
+            $table->id('exam_id');
+            $table->string('title');
+            $table->text('description')->nullable();
+            $table->boolean('is_active')->default(false);
+            $table->smallInteger('year');
+            $table->timestamps();
         });
     }
 
@@ -21,8 +26,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('applicants', function (Blueprint $table) {
-            $table->dropColumn('photo_path');
-        });
+        Schema::dropIfExists('exams');
     }
 };
+

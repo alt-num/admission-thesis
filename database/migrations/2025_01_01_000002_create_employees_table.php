@@ -11,16 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('exam_schedules', function (Blueprint $table) {
-            $table->id('schedule_id');
-            $table->foreignId('exam_id')
-                ->constrained('exams', 'exam_id')
+        Schema::create('employees', function (Blueprint $table) {
+            $table->id('employee_id');
+            $table->string('first_name');
+            $table->string('middle_name')->nullable();
+            $table->string('last_name');
+            $table->string('status')->default('active');
+            $table->foreignId('department_id')
+                ->constrained('departments', 'department_id')
                 ->cascadeOnUpdate()
                 ->restrictOnDelete();
-            $table->date('schedule_date');
-            $table->time('start_time');
-            $table->time('end_time');
-            $table->integer('capacity')->nullable();
             $table->timestamps();
         });
     }
@@ -30,6 +30,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('exam_schedules');
+        Schema::dropIfExists('employees');
     }
 };
+

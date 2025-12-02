@@ -19,7 +19,7 @@ return new class extends Migration
                 ->constrained('campuses', 'campus_id')
                 ->cascadeOnUpdate()
                 ->restrictOnDelete();
-            $table->string('first_name');   
+            $table->string('first_name');
             $table->string('middle_name')->nullable();
             $table->string('last_name');
             $table->date('birth_date')->nullable();
@@ -50,7 +50,9 @@ return new class extends Migration
                 ->constrained('courses', 'course_id')
                 ->cascadeOnUpdate()
                 ->restrictOnDelete();
-            $table->enum('status', ['Pending', 'ExamTaken', 'Passed', 'Failed'])->default('Pending');
+            $table->enum('status', ['Pending', 'Qualified', 'NotQualified', 'Flagged'])->default('Pending');
+            $table->string('photo_path')->nullable();
+            $table->boolean('needs_revision')->default(false);
             $table->foreignId('registered_by')
                 ->nullable()
                 ->constrained('admission_users', 'admission_user_id')
@@ -68,3 +70,4 @@ return new class extends Migration
         Schema::dropIfExists('applicants');
     }
 };
+

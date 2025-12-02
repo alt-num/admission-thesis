@@ -48,6 +48,8 @@ Route::middleware('auth:admission')->prefix('admission')->name('admission.')->gr
     Route::post('/applicants/{applicant}/request-new-photo', [ApplicantController::class, 'requestNewPhoto'])->name('applicants.request-new-photo');
     Route::post('/applicants/{applicant}/return-for-revision', [ApplicantController::class, 'returnForRevision'])->name('applicants.return-for-revision');
     Route::put('/applicants/{applicant}/email', [ApplicantController::class, 'updateEmail'])->name('applicants.updateEmail');
+    Route::post('/applicants/{applicant}/toggle-flagged', [ApplicantController::class, 'toggleFlagged'])->name('applicants.toggle-flagged');
+    Route::post('/applicants/{applicant}/toggle-account-status', [ApplicantController::class, 'toggleAccountStatus'])->name('applicants.toggle-account-status');
 
     // Exams
     Route::get('/exams', [ExamController::class, 'index'])->name('exams.index');

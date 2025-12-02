@@ -241,12 +241,20 @@
                                 'Pending' => 'bg-yellow-100 text-yellow-800',
                                 'Qualified' => 'bg-green-100 text-green-800',
                                 'NotQualified' => 'bg-red-100 text-red-800',
+                                'Flagged' => 'bg-red-200 text-red-900',
                             ];
-                            $color = $statusColors[$applicant->status] ?? 'bg-gray-100 text-gray-800';
+                            // If flagged, show Flagged status and override others
+                            $displayStatus = $applicant->status === 'Flagged' ? 'Flagged' : $applicant->status;
+                            $color = $statusColors[$displayStatus] ?? 'bg-gray-100 text-gray-800';
                         @endphp
                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $color }}">
-                            {{ $applicant->status }}
+                            {{ $displayStatus === 'Flagged' ? 'FLAGGED' : $displayStatus }}
                         </span>
+                        @if($applicant->applicantUser && strtolower($applicant->applicantUser->account_status) === 'disabled')
+                            <span class="ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-200 text-gray-800">
+                                DISABLED
+                            </span>
+                        @endif
                     </dd>
                 </div>
                 <div>
@@ -489,6 +497,61 @@
                 <p class="text-sm text-gray-500">No exam attempt found for this applicant.</p>
             </div>
         @endif
+    </div>
+
+    <!-- Flag/Unflag and Enable/Disable Controls -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Account Controls</h2>
+        <div class="flex items-center space-x-4">
+            <!-- Flag/Unflag Toggle -->
+            <div>
+                <form method="POST" action="{{ route('admission.applicants.toggle-flagged', $applicant) }}" class="inline">
+                    @csrf
+                    @if($applicant->status === 'Flagged')
+                        <button type="submit" 
+                                class="inline-flex items-center px-4 py-2 bg-yellow-600 text-white text-sm font-medium rounded-lg hover:bg-yellow-700 transition-colors">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            Unflag
+                        </button>
+                    @else
+                        <button type="submit" 
+                                class="inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            Flag
+                        </button>
+                    @endif
+                </form>
+            </div>
+            <!-- Enable/Disable Toggle -->
+            @if($applicant->applicantUser)
+                <div>
+                    <form method="POST" action="{{ route('admission.applicants.toggle-account-status', $applicant) }}" class="inline">
+                        @csrf
+                        @if(strtolower($applicant->applicantUser->account_status) === 'active')
+                            <button type="submit" 
+                                    class="inline-flex items-center px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                </svg>
+                                Disable
+                            </button>
+                        @else
+                            <button type="submit" 
+                                    class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                                Enable
+                            </button>
+                        @endif
+                    </form>
+                </div>
+            @endif
+        </div>
     </div>
 
     <!-- Anti-Cheat Activity Log -->
