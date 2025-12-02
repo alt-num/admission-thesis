@@ -10,6 +10,7 @@ use App\Http\Controllers\Admission\ExamEditor\SectionController;
 use App\Http\Controllers\Admission\ExamEditor\SubsectionController;
 use App\Http\Controllers\Admission\ExamEditor\QuestionController;
 use App\Http\Controllers\Admission\ExamEditor\ChoiceController;
+use App\Http\Controllers\Admission\ApplicantPdfController;
 use App\Http\Controllers\MasterDataController;
 use App\Http\Controllers\SettingsController;
 
@@ -38,6 +39,7 @@ Route::middleware('auth:admission')->prefix('admission')->name('admission.')->gr
     Route::get('/applicants/create', [ApplicantController::class, 'create'])->name('applicants.create');
     Route::post('/applicants', [ApplicantController::class, 'store'])->name('applicants.store');
     Route::get('/applicants/{applicant}', [ApplicantController::class, 'show'])->name('applicants.show');
+    Route::get('/applicants/{id}/application-form', [ApplicantPdfController::class, 'generate'])->name('applicants.application_form');
     Route::get('/applicants/{applicant}/declaration', [ApplicantController::class, 'declarationViewing'])->name('applicants.declaration');
     Route::post('/applicants/{applicant}/declaration/remarks', [\App\Http\Controllers\ApplicantDeclarationController::class, 'saveRemarks'])->name('applicants.declaration.remarks');
     Route::post('/applicants/{applicant}/send-credentials', [\App\Http\Controllers\Admission\EmailController::class, 'sendCredentials'])->name('applicants.send-credentials');
