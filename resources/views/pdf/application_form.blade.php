@@ -426,7 +426,9 @@
                             </div>
 
                             <!-- Date Line -->
-                            <div style="width:100%; border-bottom:1px solid #000; height:14px; margin-top:10px;"></div>
+                            <div style="width:100%; border-bottom:1px solid #000; height:14px; margin-top:10px;">
+                                <div style="text-align:center; font-size:9pt; padding-top:2px;">{{ $declaration_date }}</div>
+                            </div>
                             <div style="font-weight:bold; text-align:center; font-size:11px; margin-top:2px;">
                                 DATE
                             </div>

@@ -31,6 +31,13 @@ class ApplicantPdfController extends Controller
             $photo_path = storage_path('app/public/' . $applicant->photo_path);
         }
 
+        // Prepare declaration date
+        $declaration = $applicant->declaration;
+        $declarationDate = '';
+        if ($declaration && $declaration->certified_date) {
+            $declarationDate = \Carbon\Carbon::parse($declaration->certified_date)->format('d/m/Y');
+        }
+
         // Prepare logo paths
         $essu_logo = public_path('imgs/essu.png');
         $bagong_logo = public_path('imgs/bagong_pilipinas.png');
@@ -41,6 +48,7 @@ class ApplicantPdfController extends Controller
             'photo_path' => $photo_path,
             'essu_logo' => $essu_logo,
             'bagong_logo' => $bagong_logo,
+            'declaration_date' => $declarationDate,
         ];
 
         // Generate PDF
