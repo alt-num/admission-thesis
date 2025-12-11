@@ -33,7 +33,7 @@
             </div>
             <div class="ml-3">
                 <p class="text-sm text-blue-700">
-                    <strong>Note:</strong> Upon registration, a placeholder name will be assigned. The applicant will provide their complete personal information when they log in.
+                    <strong>Note:</strong> The application reference number will be auto-generated based on campus and school year. Upon registration, a placeholder name will be assigned. The applicant will provide their complete personal information when they log in.
                 </p>
             </div>
         </div>
@@ -43,34 +43,17 @@
         <form action="{{ route('admission.applicants.store') }}" method="POST" class="space-y-6">
             @csrf
 
-            <!-- Application Number (Auto-Formatted) -->
+            <!-- Application Reference Number (Auto-Generated Preview) -->
             <div>
-                <label for="app_number" class="block text-sm font-medium text-gray-700">Application Number *</label>
+                <label class="block text-sm font-medium text-gray-700">Application Reference Number</label>
                 <div class="mt-1">
-                    <input type="number" 
-                           name="app_number" 
-                           id="app_number" 
-                           value="{{ old('app_number') }}"
-                           min="1"
-                           max="99999"
-                           required
-                           class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                           placeholder="Enter number (1-99999)">
-                    <!-- Live Preview -->
-                    <div id="app_ref_preview" class="mt-2 p-2 bg-gray-50 border border-gray-200 rounded-md">
-                        <p class="text-xs text-gray-500 mb-1">Preview:</p>
-                        <p class="text-sm font-mono font-semibold text-gray-900" id="preview_text">Select campus and enter number</p>
+                    <!-- Display Preview -->
+                    <div id="app_ref_preview" class="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                        <p class="text-xs text-gray-600 mb-1">Auto-generated:</p>
+                        <p class="text-lg font-mono font-semibold text-blue-600" id="preview_text">—</p>
                     </div>
-                    <!-- Hidden field for formatted reference number (server-side generated) -->
-                    <input type="hidden" name="app_ref_no" id="app_ref_no_hidden" value="">
+                    <p class="mt-2 text-xs text-gray-500">The reference number will be automatically generated based on your campus and school year selections below.</p>
                 </div>
-                <p class="mt-1 text-xs text-gray-500">Enter only the number part (1-99999). The full reference number will be auto-generated.</p>
-                @error('app_number')
-                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                @enderror
-                @error('app_ref_no')
-                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                @enderror
             </div>
 
             <!-- Email -->
@@ -172,47 +155,41 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const campusSelect = document.getElementById('campus_id');
-        const appNumberInput = document.getElementById('app_number');
+        const schoolYearInput = document.getElementById('school_year');
         const previewText = document.getElementById('preview_text');
-        const hiddenRefNo = document.getElementById('app_ref_no_hidden');
 
         function updatePreview() {
             const campusId = campusSelect.value;
-            const appNumber = appNumberInput.value.trim();
+            const schoolYear = schoolYearInput.value.trim();
 
-            if (!campusId || !appNumber) {
-                previewText.textContent = 'Select campus and enter number';
-                hiddenRefNo.value = '';
+            if (!campusId || !schoolYear) {
+                previewText.textContent = '—';
                 return;
             }
 
             const campus = campuses[campusId];
             if (!campus) {
-                previewText.textContent = 'Invalid campus selected';
-                hiddenRefNo.value = '';
+                previewText.textContent = '—';
                 return;
             }
 
-            // Validate number
-            const num = parseInt(appNumber);
-            if (isNaN(num) || num < 1 || num > 99999) {
-                previewText.textContent = 'Enter a number between 1 and 99999';
-                hiddenRefNo.value = '';
+            // Validate school year format (e.g., 2024-2025)
+            const yearMatch = schoolYear.match(/(\d{4})-(\d{4})/);
+            if (!yearMatch) {
+                previewText.textContent = '—';
                 return;
             }
 
-            // Format: CITYCODE-YYNNNNN (5 digits padded)
+            // Extract YY from school year (e.g., 2025-2026 → 25)
+            const yearShort = schoolYear.substring(2, 4);
             const cityCode = campus.city_code;
-            const year = currentYear.toString();
-            const paddedNumber = String(num).padStart(5, '0');
-            const formattedRefNo = `${cityCode}-${year}${paddedNumber}`;
 
-            previewText.textContent = formattedRefNo;
-            hiddenRefNo.value = formattedRefNo;
+            // Display format: CITYCODE-YY##### (# will be auto-generated by server)
+            previewText.textContent = `${cityCode}-${yearShort}##### (server-generated sequence)`;
         }
 
         campusSelect.addEventListener('change', updatePreview);
-        appNumberInput.addEventListener('input', updatePreview);
+        schoolYearInput.addEventListener('input', updatePreview);
         
         // Initial preview update
         updatePreview();

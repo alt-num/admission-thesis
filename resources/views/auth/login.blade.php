@@ -81,6 +81,29 @@
                 Sign In
             </button>
         </form>
+
+        {{-- Divider --}}
+        <div class="relative">
+            <div class="absolute inset-0 flex items-center">
+                <div class="w-full border-t border-gray-300"></div>
+            </div>
+            <div class="relative flex justify-center text-sm">
+                <span class="px-2 bg-white text-gray-500">or</span>
+            </div>
+        </div>
+
+        {{-- HRMS SSO Button --}}
+        <a 
+            href="{{ route('admission.oauth.redirect') }}" 
+            class="w-full block text-center bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+        >
+            Sign In with HRMS
+        </a>
+
+        {{-- Help Text --}}
+        <p class="text-center text-xs text-gray-600">
+            Admission staff can use their HRMS credentials to log in.
+        </p>
     </div>
 </div>
 @endsection

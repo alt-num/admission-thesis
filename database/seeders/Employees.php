@@ -21,24 +21,6 @@ class Employees extends Seeder
                 'department_id' => 1,
                 'created_at' => $now,
                 'updated_at' => $now,
-            ],
-            [
-                'first_name' => 'John',
-                'middle_name' => 'Doe',
-                'last_name' => 'Smith',
-                'status' => 'active',
-                'department_id' => 1,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ],
-            [
-                'first_name' => 'Jane',
-                'middle_name' => 'Marie',
-                'last_name' => 'Johnson',
-                'status' => 'inactive',
-                'department_id' => 1,
-                'created_at' => $now,
-                'updated_at' => $now,
             ]
         ];
 

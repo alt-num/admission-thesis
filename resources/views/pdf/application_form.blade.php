@@ -418,18 +418,25 @@
                     </tr>
                     <!-- SIGNATURE -->
                     <tr>
-                        <td colspan="4" style="padding-top:5px; padding-bottom:5px;">
-                            <!-- Signature Line -->
-                            <div style="width:100%; border-bottom:1px solid #000; height:14px;"></div>
-                            <div style="font-weight:bold; text-align:center; font-size:11px; margin-top:2px;">
+                        <td colspan="4" style="padding-top:5px; padding-bottom:5px; text-align:center;">
+
+                            <!-- Printed Name ABOVE the line -->
+                            <div style="font-size:11px; margin-bottom:0;">
+                                {{ $declaration_signature_name }}
+                            </div>
+
+                            <!-- Signature Line WITHIN the same block -->
+                            <div style="border-bottom:1px solid #000; width:100%; line-height:0; margin-top:;"></div>
+
+                            <div style="font-weight:bold; font-size:11px; margin-top:2px;">
                                 SIGNATURE OVER PRINTED NAME
                             </div>
 
-                            <!-- Date Line -->
-                            <div style="width:100%; border-bottom:1px solid #000; height:14px; margin-top:10px;">
-                                <div style="text-align:center; font-size:9pt; padding-top:2px;">{{ $declaration_date }}</div>
+                            <!-- Date -->
+                            <div style="border-bottom:1px solid #000; width:100%; height:14px; margin-top:10px;">
+                                <div style="font-size:9pt; padding-top:2px;">{{ $declaration_date }}</div>
                             </div>
-                            <div style="font-weight:bold; text-align:center; font-size:11px; margin-top:2px;">
+                            <div style="font-weight:bold; font-size:11px; margin-top:2px;">
                                 DATE
                             </div>
 

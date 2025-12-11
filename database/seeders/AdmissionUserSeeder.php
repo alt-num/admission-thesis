@@ -19,7 +19,7 @@ class AdmissionUserSeeder extends Seeder
         AdmissionUser::create([
             'employee_id' => 1,
             'username' => 'admin',
-            'password' => Hash::make('admin'),
+            'password' => Hash::make('admin-123'),
             'role' => 'Admin',
             'created_at' => $now,
             'updated_at' => $now,

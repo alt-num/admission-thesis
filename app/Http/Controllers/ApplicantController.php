@@ -90,30 +90,17 @@ class ApplicantController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'app_number' => 'required|integer|min:1|max:99999',
-            'app_ref_no' => 'nullable|string', // Hidden field, will be regenerated server-side
             'email' => 'required|email|unique:applicants,email',
             'campus_id' => 'required|exists:campuses,campus_id',
             'school_year' => 'required|string',
             'schedule_id' => 'nullable|exists:exam_schedules,schedule_id',
         ]);
 
-        // Get the campus
+        // Generate app_ref_no automatically
+        $appRefNo = $this->generateAppRefNo($validated['campus_id'], $validated['school_year']);
+
+        // Get the campus for later use
         $campus = Campus::findOrFail($validated['campus_id']);
-
-        // Generate formatted reference number server-side (prevents tampering)
-        $cityCode = $campus->city_code;
-        $year = date('y'); // Last 2 digits of current year
-        $appNumber = (int) $validated['app_number'];
-        $paddedNumber = str_pad($appNumber, 5, '0', STR_PAD_LEFT);
-        $appRefNo = "{$cityCode}-{$year}{$paddedNumber}";
-
-        // Validate uniqueness of generated reference number
-        if (Applicant::where('app_ref_no', $appRefNo)->exists()) {
-            return back()
-                ->withErrors(['app_number' => 'This application number already exists for this campus and year.'])
-                ->withInput();
-        }
 
         // Auto-generate placeholder names
         $firstName = 'Applicant';
@@ -598,5 +585,41 @@ class ApplicantController extends Controller
         $user->save();
 
         return back()->with('success', 'Applicant account status updated.');
+    }
+
+    /**
+     * Generate application reference number automatically.
+     * Format: <CITY_CODE>-<YY><#####>
+     * Example: BOR-2500001
+     */
+    private function generateAppRefNo($campusId, $schoolYear)
+    {
+        // A) Get city code from campus
+        $cityCode = Campus::findOrFail($campusId)->city_code;
+
+        // B) Extract school year short (e.g., "2025-2026" → "25")
+        $yearShort = substr($schoolYear, 2, 2);
+
+        // C) Find the last applicant for the same campus + same school year
+        $last = Applicant::where('campus_id', $campusId)
+                         ->where('school_year', $schoolYear)
+                         ->orderBy('applicant_id', 'desc')
+                         ->first();
+
+        // D) Determine next sequence
+        if ($last) {
+            // Extract last 5 digits from $last->app_ref_no and increment
+            $lastSequence = (int) substr($last->app_ref_no, -5);
+            $next = $lastSequence + 1;
+        } else {
+            // Start at 1
+            $next = 1;
+        }
+
+        // E) Zero-pad to 5 digits
+        $numPadded = str_pad($next, 5, '0', STR_PAD_LEFT);
+
+        // F) Return formatted reference number
+        return "{$cityCode}-{$yearShort}{$numPadded}";
     }
 }

@@ -21,6 +21,10 @@ Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
+// HRMS OAuth routes
+Route::get('/admission/oauth/redirect', [\App\Http\Controllers\Admission\HRMSOAuthController::class, 'redirectToHR'])->name('admission.oauth.redirect');
+Route::get('/admission/oauth/callback', [\App\Http\Controllers\Admission\HRMSOAuthController::class, 'handleHRCallback'])->name('admission.oauth.callback');
+
 // Admission routes (protected)
 Route::middleware('auth:admission')->prefix('admission')->name('admission.')->group(function () {
     // Dashboard

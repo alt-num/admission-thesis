@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'oauth' => [
+        'client_id' => env('HRMS_OAUTH_CLIENT_ID'),
+        'client_secret' => env('HRMS_OAUTH_CLIENT_SECRET'),
+        'redirect_uri' => env('HRMS_OAUTH_REDIRECT_URI', 'http://127.0.0.1:8000/admission/oauth/callback'),
+        'provider_url' => env('HRMS_OAUTH_PROVIDER_URL', 'https://hrms.example.com'),
+    ],
+
 ];
