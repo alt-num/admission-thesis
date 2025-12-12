@@ -49,5 +49,6 @@ COPY --from=build /var/www/html /var/www/html
 EXPOSE 8080
 
 # Start Laravel
-CMD ["sh", "-c", "php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=8080"]
+CMD ["sh", "-c", "php artisan migrate --force && php artisan db:seed --force && php artisan storage:link && php artisan serve --host=0.0.0.0 --port=8080"]
+
 
