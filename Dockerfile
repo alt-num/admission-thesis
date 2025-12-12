@@ -13,22 +13,22 @@ RUN apt-get update && apt-get install -y \
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 # Install Node 18 (for Vite)
-RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
-RUN apt-get install -y nodejs
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs
 
 WORKDIR /var/www/html
 
 # Copy project files
 COPY . .
 
-# Ensure env exists
-RUN cp .env.production.example .env || touch .env
+# IMPORTANT: Copy production env (ensure .env.production.example exists)
+RUN cp .env.production.example .env
 
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Build frontend
-RUN npm install
+# Build frontend assets
+RUN npm install --no-audit --no-fund
 RUN npm run build
 
 # ---------------------------------------------------------
@@ -42,13 +42,16 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /var/www/html
 
-# Copy everything from the build container
+# Copy built app
 COPY --from=build /var/www/html /var/www/html
 
-# Expose port 8080 (Railway required)
+# ---- CRITICAL: storage & cache permissions ----
+# ensure storage and bootstrap/cache are writable by the PHP process
+RUN mkdir -p storage/logs storage/framework bootstrap/cache \
+    && chmod -R 777 storage bootstrap/cache
+
+# Expose port 8080 for Railway
 EXPOSE 8080
 
-# Start Laravel
-CMD ["sh", "-c", "php artisan migrate --force && php artisan db:seed --force && php artisan storage:link && php artisan serve --host=0.0.0.0 --port=8080"]
-
-
+# Run migrations, seed, link storage, then start Laravel
+CMD ["sh", "-c", "php artisan migrate --force && php artisan db:seed --force && php artisan storage:link || true && php artisan serve --host=0.0.0.0 --port=8080"]
