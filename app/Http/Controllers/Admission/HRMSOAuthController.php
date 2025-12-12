@@ -19,7 +19,7 @@ class HRMSOAuthController extends Controller
      */
     public function redirectToHR()
     {
-        // Clear any stale session from previous authorization attempts
+        // Clear any stale session data from previous authorization attempts
         Auth::logout();
         Session::invalidate();
         Session::regenerateToken();
