@@ -8,7 +8,7 @@ nixPkgs = [
   "php83Extensions.pdo_pgsql",
   "php83Extensions.zip",
   "nodejs_20",
-  "composer"
+  "php83Packages.composer"
 ]
 
 [phases.install]
