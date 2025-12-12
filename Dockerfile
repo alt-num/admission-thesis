@@ -16,16 +16,18 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
 RUN apt-get install -y nodejs
 
-# Set working directory
 WORKDIR /var/www/html
 
 # Copy project files
 COPY . .
 
+# Ensure env exists
+RUN cp .env.production.example .env || touch .env
+
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Install JS dependencies + build assets
+# Build frontend
 RUN npm install
 RUN npm run build
 
@@ -34,21 +36,17 @@ RUN npm run build
 # ---------------------------------------------------------
 FROM php:8.3-fpm AS prod
 
-# Install PHP extensions
 RUN apt-get update && apt-get install -y \
     libpq-dev libzip-dev libxml2-dev \
     && docker-php-ext-install pdo pdo_pgsql zip
 
 WORKDIR /var/www/html
 
-# Copy created .env file or create an empty one
-RUN cp .env.example .env || touch .env
-
-# Copy application from the build stage
+# Copy everything from the build container
 COPY --from=build /var/www/html /var/www/html
 
-# Expose port for Laravel server
+# Expose port 8080 (Railway required)
 EXPOSE 8080
 
-# Start Laravel server
+# Start Laravel
 CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8080"]
