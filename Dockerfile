@@ -41,6 +41,9 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /var/www/html
 
+# Copy created .env file or create an empty one
+RUN cp .env.example .env || touch .env
+
 # Copy application from the build stage
 COPY --from=build /var/www/html /var/www/html
 
