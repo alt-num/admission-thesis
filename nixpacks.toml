@@ -3,9 +3,9 @@ nixPkgs = [
   "php83",
   "php83Extensions.curl",
   "php83Extensions.mbstring",
+  "php83Extensions.fileinfo",
   "php83Extensions.pdo",
   "php83Extensions.pdo_pgsql",
-  "php83Extensions.fileinfo",
   "php83Extensions.zip",
   "nodejs_20",
   "composer"
@@ -14,13 +14,11 @@ nixPkgs = [
 [phases.install]
 cmds = [
   "composer install --no-dev --optimize-autoloader",
-  "npm install"
+  "npm install --no-audit --no-fund"
 ]
 
 [phases.build]
-cmds = [
-  "npm run build"
-]
+cmds = ["npm run build"]
 
-[phases.start]
-cmd = "bash start.sh"
+[start]
+cmd = "sh start.sh"
