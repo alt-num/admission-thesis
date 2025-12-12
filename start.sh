@@ -1,18 +1,18 @@
 #!/bin/bash
+set -e
 
-# Run database migrations
-php artisan migrate --force || true
+echo "Running migrations..."
+php artisan migrate --force
 
-# Seed database (if you want)
+echo "Seeding database..."
 php artisan db:seed --force || true
 
-# Create storage symlink
+echo "Creating storage symlink..."
 php artisan storage:link || true
 
-# Clear and optimize (recommended)
+echo "Optimizing..."
 php artisan optimize:clear
 php artisan optimize
 
-# Start Laravel
+echo "Starting Laravel..."
 php artisan serve --host=0.0.0.0 --port=8080
-
