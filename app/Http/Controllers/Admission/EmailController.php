@@ -43,7 +43,7 @@ class EmailController extends Controller
             
             $campusName = $applicant->campus->campus_name ?? 'N/A';
 
-            Mail::to($applicant->email)->send(
+            Mail::to($applicant->email)->queue(
                 new ApplicantAccountCreatedMail(
                     $applicant,
                     $username,
@@ -83,7 +83,7 @@ class EmailController extends Controller
         $campusName = $applicant->campus->campus_name ?? 'N/A';
 
         try {
-            Mail::to($applicant->email)->send(
+            Mail::to($applicant->email)->queue(
                 new ExamScheduleAssignedMail(
                     $applicant,
                     $schedule,

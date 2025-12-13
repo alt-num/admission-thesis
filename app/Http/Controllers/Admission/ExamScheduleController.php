@@ -208,7 +208,7 @@ class ExamScheduleController extends Controller
             $applicant = Applicant::with('campus')->find($applicantId);
 
             // Send exam schedule assignment email
-            Mail::to($applicant->email)->send(
+            Mail::to($applicant->email)->queue(
                 new ExamScheduleAssignedMail(
                     $applicant,
                     $schedule,

@@ -15,7 +15,6 @@ echo "Creating storage symlink..."
 php artisan storage:link || true
 
 echo "Optimizing..."
-php artisan optimize:clear
 php artisan optimize
 
 echo "Starting Laravel..."

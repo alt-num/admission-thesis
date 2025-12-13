@@ -138,7 +138,7 @@ class ApplicantController extends Controller
         ]);
 
         // Send account creation email
-        Mail::to($applicant->email)->send(
+        Mail::to($applicant->email)->queue(
             new ApplicantAccountCreatedMail(
                 $applicant,
                 $username,
@@ -169,7 +169,7 @@ class ApplicantController extends Controller
             ]);
 
             // Send exam schedule assignment email
-            Mail::to($applicant->email)->send(
+            Mail::to($applicant->email)->queue(
                 new ExamScheduleAssignedMail(
                     $applicant,
                     $schedule,
@@ -320,7 +320,7 @@ class ApplicantController extends Controller
 
         // Send email notification
         try {
-            Mail::to($applicant->email)->send(
+            Mail::to($applicant->email)->queue(
                 new PhotoRejectedMail($applicant)
             );
         } catch (\Exception $e) {
@@ -371,7 +371,7 @@ class ApplicantController extends Controller
                     ]);
                 }
 
-                Mail::to($applicant->email)->send(
+                Mail::to($applicant->email)->queue(
                     new ApplicantAccountCreatedMail(
                         $applicant,
                         $username,
@@ -413,7 +413,7 @@ class ApplicantController extends Controller
 
         // Send email notification
         try {
-            Mail::to($applicant->email)->send(
+            Mail::to($applicant->email)->queue(
                 new ApplicationNeedsRevisionMail($applicant)
             );
         } catch (\Exception $e) {
