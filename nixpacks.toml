@@ -18,7 +18,13 @@ cmds = [
 ]
 
 [phases.build]
-cmds = ["npm run build"]
+cmds = [
+  "npm run build",
+  "php artisan view:clear",
+  "php artisan config:clear"
+]
 
-[start]
+[phases.start]
+dependsOn = ["phases.build"]
 cmd = "sh start.sh"
+
