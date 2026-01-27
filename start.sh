@@ -1,21 +1,32 @@
 #!/bin/bash
 set -e
 
-echo "Building frontend..."
-npm ci --no-audit --no-fund
-npm run build
+echo "RAILWAY_SERVICE_NAME=$RAILWAY_SERVICE_NAME"
 
-echo "Running migrations..."
-php artisan migrate --force
+if [[ "$RAILWAY_SERVICE_NAME" == "essu-worker" ]]; then
+  echo "Starting QUEUE WORKER..."
 
-echo "Seeding database..."
-php artisan db:seed --force || true
+  php artisan queue:work --verbose --tries=3 --timeout=90
 
-echo "Creating storage symlink..."
-php artisan storage:link || true
+else
+  echo "Starting WEB SERVICE..."
 
-echo "Optimizing..."
-php artisan optimize
+  echo "Building frontend..."
+  npm ci --no-audit --no-fund
+  npm run build
 
-echo "Starting Laravel..."
-php artisan serve --host=0.0.0.0 --port=8080
+  echo "Running migrations..."
+  php artisan migrate --force
+
+  echo "Seeding database..."
+  php artisan db:seed --force || true
+
+  echo "Creating storage symlink..."
+  php artisan storage:link || true
+
+  echo "Optimizing..."
+  php artisan optimize
+
+  echo "Starting Laravel..."
+  php artisan serve --host=0.0.0.0 --port=8080
+fi
