@@ -13,14 +13,6 @@ use Illuminate\Support\Facades\Mail;
 
 class EmailController extends Controller
 {
-    public function __construct()
-    {
-        // Apply rate limiting to email resend endpoints
-        $this->middleware('rate-limit-email-resends', [
-            'only' => ['sendCredentials', 'sendSchedule']
-        ]);
-    }
-
     /**
      * Send login credentials to applicant.
      */

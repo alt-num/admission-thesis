@@ -48,8 +48,8 @@ Route::middleware('auth:admission')->prefix('admission')->name('admission.')->gr
     Route::get('/applicants/{id}/application-form', [ApplicantPdfController::class, 'generate'])->name('applicants.application_form');
     Route::get('/applicants/{applicant}/declaration', [ApplicantController::class, 'declarationViewing'])->name('applicants.declaration');
     Route::post('/applicants/{applicant}/declaration/remarks', [\App\Http\Controllers\ApplicantDeclarationController::class, 'saveRemarks'])->name('applicants.declaration.remarks');
-    Route::post('/applicants/{applicant}/send-credentials', [\App\Http\Controllers\Admission\EmailController::class, 'sendCredentials'])->name('applicants.send-credentials');
-    Route::post('/applicants/{applicant}/send-schedule', [\App\Http\Controllers\Admission\EmailController::class, 'sendSchedule'])->name('applicants.send-schedule');
+    Route::post('/applicants/{applicant}/send-credentials', [\App\Http\Controllers\Admission\EmailController::class, 'sendCredentials'])->middleware('rate-limit-email-resends')->name('applicants.send-credentials');
+    Route::post('/applicants/{applicant}/send-schedule', [\App\Http\Controllers\Admission\EmailController::class, 'sendSchedule'])->middleware('rate-limit-email-resends')->name('applicants.send-schedule');
     Route::post('/applicants/{applicant}/reset-credentials', [ApplicantController::class, 'resetCredentials'])->name('applicants.reset-credentials');
     Route::post('/applicants/{applicant}/request-new-photo', [ApplicantController::class, 'requestNewPhoto'])->name('applicants.request-new-photo');
     Route::post('/applicants/{applicant}/return-for-revision', [ApplicantController::class, 'returnForRevision'])->name('applicants.return-for-revision');
