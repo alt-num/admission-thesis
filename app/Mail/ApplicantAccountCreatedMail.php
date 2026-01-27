@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Mail\Traits\EmailSafetyTrait;
 use App\Models\Applicant;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
@@ -11,7 +12,7 @@ use Illuminate\Queue\SerializesModels;
 
 class ApplicantAccountCreatedMail extends Mailable
 {
-    use Queueable, SerializesModels;
+    use Queueable, SerializesModels, EmailSafetyTrait;
 
     /**
      * Create a new message instance.

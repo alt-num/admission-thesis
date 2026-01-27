@@ -6,11 +6,21 @@ use App\Http\Controllers\Controller;
 use App\Mail\ApplicantAccountCreatedMail;
 use App\Mail\ExamScheduleAssignedMail;
 use App\Models\Applicant;
+use App\Services\EmailAuditService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 
 class EmailController extends Controller
 {
+    public function __construct()
+    {
+        // Apply rate limiting to email resend endpoints
+        $this->middleware('rate-limit-email-resends', [
+            'only' => ['sendCredentials', 'sendSchedule']
+        ]);
+    }
+
     /**
      * Send login credentials to applicant.
      */
@@ -43,17 +53,34 @@ class EmailController extends Controller
             
             $campusName = $applicant->campus->campus_name ?? 'N/A';
 
-            Mail::to($applicant->email)->queue(
-                new ApplicantAccountCreatedMail(
-                    $applicant,
-                    $username,
-                    $password,
-                    $campusName
-                )
+            $mailable = new ApplicantAccountCreatedMail(
+                $applicant,
+                $username,
+                $password,
+                $campusName
+            );
+
+            Mail::to($applicant->email)->queue($mailable);
+
+            // Log the email send for audit
+            EmailAuditService::logQueued(
+                ApplicantAccountCreatedMail::class,
+                $applicant->email,
+                $mailable->envelope()->subject,
+                $applicant->app_ref_no
             );
 
             return back()->with('success', 'Login credentials email sent successfully!');
         } catch (\Exception $e) {
+            // Log the failure
+            EmailAuditService::logFailed(
+                ApplicantAccountCreatedMail::class,
+                $applicant->email,
+                'Login Credentials',
+                $e->getMessage(),
+                $applicant->app_ref_no
+            );
+            
             return back()->with('error', 'Failed to send email: ' . $e->getMessage());
         }
     }
@@ -83,17 +110,34 @@ class EmailController extends Controller
         $campusName = $applicant->campus->campus_name ?? 'N/A';
 
         try {
-            Mail::to($applicant->email)->queue(
-                new ExamScheduleAssignedMail(
-                    $applicant,
-                    $schedule,
-                    $exam->title,
-                    $campusName
-                )
+            $mailable = new ExamScheduleAssignedMail(
+                $applicant,
+                $schedule,
+                $exam->title,
+                $campusName
+            );
+
+            Mail::to($applicant->email)->queue($mailable);
+
+            // Log the email send for audit
+            EmailAuditService::logQueued(
+                ExamScheduleAssignedMail::class,
+                $applicant->email,
+                $mailable->envelope()->subject,
+                $applicant->app_ref_no
             );
 
             return back()->with('success', 'Exam schedule email sent successfully!');
         } catch (\Exception $e) {
+            // Log the failure
+            EmailAuditService::logFailed(
+                ExamScheduleAssignedMail::class,
+                $applicant->email,
+                'Exam Schedule',
+                $e->getMessage(),
+                $applicant->app_ref_no
+            );
+            
             return back()->with('error', 'Failed to send email: ' . $e->getMessage());
         }
     }

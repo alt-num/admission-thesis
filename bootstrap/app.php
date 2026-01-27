@@ -13,6 +13,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'applicant.profile.complete' => \App\Http\Middleware\EnsureApplicantProfileIsComplete::class,
+            'rate-limit-email-resends' => \App\Http\Middleware\RateLimitEmailResends::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

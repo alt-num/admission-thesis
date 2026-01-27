@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Mail\Traits\EmailSafetyTrait;
 use App\Models\Applicant;
 use App\Models\ExamSchedule;
 use Illuminate\Bus\Queueable;
@@ -12,7 +13,7 @@ use Illuminate\Queue\SerializesModels;
 
 class ExamScheduleAssignedMail extends Mailable
 {
-    use Queueable, SerializesModels;
+    use Queueable, SerializesModels, EmailSafetyTrait;
 
     /**
      * Create a new message instance.

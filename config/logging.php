@@ -127,6 +127,14 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
 
+        'email' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/email.log'),
+            'level' => env('LOG_EMAIL_LEVEL', 'info'),
+            'days' => env('LOG_EMAIL_DAYS', 30),
+            'replace_placeholders' => true,
+        ],
+
     ],
 
 ];

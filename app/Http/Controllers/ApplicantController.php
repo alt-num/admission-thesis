@@ -125,8 +125,9 @@ class ApplicantController extends Controller
         // Generate username (using app_ref_no)
         $username = strtolower($appRefNo);
         
-        // Generate password using unified generator
-        $password = generateRandomPassword();
+        // Generate deterministic password based on applicant reference number
+        // Format: bor_YY_NNNNN (e.g., "bor_25_00002" from "BOR-2500002")
+        $password = generateApplicantPassword($appRefNo);
 
         // Create ApplicantUser
         ApplicantUser::create([
@@ -266,8 +267,9 @@ class ApplicantController extends Controller
             return back()->with('error', 'Username already exists. Please contact system administrator.');
         }
 
-        // Generate new password using unified generator
-        $newPassword = generateRandomPassword();
+        // Generate new deterministic password based on applicant reference number
+        // Format: bor_YY_NNNNN (e.g., "bor_25_00002" from "BOR-2500002")
+        $newPassword = generateApplicantPassword($applicant->app_ref_no);
 
         // Hash password before saving
         $hashedPassword = Hash::make($newPassword);
@@ -364,7 +366,7 @@ class ApplicantController extends Controller
 
                 // If plain_password is not set (legacy accounts), generate a new one
                 if (!$password) {
-                    $password = generateRandomPassword();
+                    $password = generateApplicantPassword($applicant->app_ref_no);
                     $applicant->applicantUser->update([
                         'password' => Hash::make($password),
                         'plain_password' => $password,
@@ -400,7 +402,7 @@ class ApplicantController extends Controller
 
         // Reset password when returning for revision
         if ($applicant->applicantUser) {
-            $newPassword = generateRandomPassword();
+            $newPassword = generateApplicantPassword($applicant->app_ref_no);
             $applicant->applicantUser->update([
                 'password' => Hash::make($newPassword),
                 'plain_password' => $newPassword,
