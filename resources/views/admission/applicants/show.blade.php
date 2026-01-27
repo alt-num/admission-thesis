@@ -4,24 +4,6 @@
 
 @section('content')
 <div class="space-y-6">
-    @if(session('success'))
-        <div class="p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
-            {{ session('success') }}
-        </div>
-    @endif
-
-    @if(session('error'))
-        <div class="p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-            {{ session('error') }}
-        </div>
-    @endif
-
-    @if(session('warning'))
-        <div class="p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-lg">
-            {{ session('warning') }}
-        </div>
-    @endif
-
     <!-- Header -->
     <div class="flex items-center justify-between">
         <div>
@@ -46,7 +28,7 @@
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
-                    Reset Username & Password
+                    Reset Credentials
                 </button>
             @endif
             @if($applicant->examSchedules->isNotEmpty())
@@ -77,7 +59,7 @@
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                Download Application Form (PDF)
+                Download (PDF)
             </a>
             <a href="{{ route('admission.applicants.index') }}" 
                class="inline-flex items-center px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors">
@@ -673,46 +655,75 @@
 </div>
 
 <script>
+// Helper function to safely attach event listeners
+function safeAddEventListener(elementId, eventType, handler) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.addEventListener(eventType, handler);
+    }
+}
+
+// Reset Modal Functions
 function openResetModal() {
-    document.getElementById('resetModal').classList.remove('hidden');
+    const modal = document.getElementById('resetModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
 }
 
 function closeResetModal() {
-    document.getElementById('resetModal').classList.add('hidden');
+    const modal = document.getElementById('resetModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
 }
 
-// Close modal when clicking outside
-document.getElementById('resetModal').addEventListener('click', function(e) {
+// Close reset modal when clicking outside
+safeAddEventListener('resetModal', 'click', function(e) {
     if (e.target === this) {
         closeResetModal();
     }
 });
 
+// Request Photo Modal Functions
 function openRequestPhotoModal() {
-    document.getElementById('requestPhotoModal').classList.remove('hidden');
+    const modal = document.getElementById('requestPhotoModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
 }
 
 function closeRequestPhotoModal() {
-    document.getElementById('requestPhotoModal').classList.add('hidden');
+    const modal = document.getElementById('requestPhotoModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
 }
 
-// Close modal when clicking outside
-document.getElementById('requestPhotoModal').addEventListener('click', function(e) {
+// Close request photo modal when clicking outside
+safeAddEventListener('requestPhotoModal', 'click', function(e) {
     if (e.target === this) {
         closeRequestPhotoModal();
     }
 });
 
+// Return for Revision Modal Functions
 function openReturnForRevisionModal() {
-    document.getElementById('returnForRevisionModal').classList.remove('hidden');
+    const modal = document.getElementById('returnForRevisionModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
 }
 
 function closeReturnForRevisionModal() {
-    document.getElementById('returnForRevisionModal').classList.add('hidden');
+    const modal = document.getElementById('returnForRevisionModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
 }
 
-// Close modal when clicking outside
-document.getElementById('returnForRevisionModal').addEventListener('click', function(e) {
+// Close return for revision modal when clicking outside
+safeAddEventListener('returnForRevisionModal', 'click', function(e) {
     if (e.target === this) {
         closeReturnForRevisionModal();
     }
@@ -806,22 +817,34 @@ document.getElementById('returnForRevisionModal').addEventListener('click', func
 @endif
 
 <script>
+// Edit Email Modal Functions
 function openEditEmailModal() {
-    document.getElementById('editEmailModal').classList.remove('hidden');
+    const modal = document.getElementById('editEmailModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
 }
 
 function closeEditEmailModal() {
-    document.getElementById('editEmailModal').classList.add('hidden');
+    const modal = document.getElementById('editEmailModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
 }
 
-// Close modal when clicking outside
-@if($applicant->applicantUser && !$applicant->isProfileComplete())
-document.getElementById('editEmailModal').addEventListener('click', function(e) {
+// Close edit email modal when clicking outside
+function safeAddEventListener(elementId, eventType, handler) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.addEventListener(eventType, handler);
+    }
+}
+
+safeAddEventListener('editEmailModal', 'click', function(e) {
     if (e.target === this) {
         closeEditEmailModal();
     }
 });
-@endif
 </script>
 @endsection
 

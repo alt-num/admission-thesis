@@ -296,7 +296,7 @@ class ApplicantController extends Controller
             return back()->with('warning', 'Credentials reset successfully, but email notification failed to send.');
         }
 
-        return back()->with('success', "Username and password reset successfully.\nUsername: {$username}\nPassword: {$newPassword}");
+        return back()->with('success', "Credentials reset successfully. New credentials have been sent to {$applicant->email}");
     }
 
     /**

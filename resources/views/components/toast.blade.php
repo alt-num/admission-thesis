@@ -7,7 +7,7 @@
         
         window.showToast = function(type, message) {
             const toast = document.createElement('div');
-            const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+            const bgColor = type === 'success' ? 'bg-green-500' : type === 'warning' ? 'bg-yellow-500' : 'bg-red-500';
             const icon = type === 'success' 
                 ? '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>'
                 : '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
@@ -59,6 +59,10 @@
         
         @if(session('error'))
             showToast('error', '{{ session('error') }}');
+        @endif
+        
+        @if(session('warning'))
+            showToast('warning', '{{ session('warning') }}');
         @endif
     })();
 </script>

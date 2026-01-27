@@ -30,9 +30,11 @@ Route::middleware('auth:admission')->prefix('admission')->name('admission.')->gr
     // Dashboard
     Route::get('/dashboard', [AdmissionDashboardController::class, 'index'])->name('dashboard');
 
-    // Active Examinees Monitor
+    // Active Examinees Monitor - DISABLED
+    /* 
     Route::get('/active-examinees', [\App\Http\Controllers\Admission\ActiveExamineesController::class, 'index'])->name('active-examinees.index');
     Route::get('/active-examinees/fetch', [\App\Http\Controllers\Admission\ActiveExamineesController::class, 'fetch'])->name('active-examinees.fetch');
+    */
 
     // Exam Activity History
     Route::get('/exam-activity-history', [\App\Http\Controllers\Admission\ExamActivityHistoryController::class, 'index'])->name('exam-activity-history.index');
