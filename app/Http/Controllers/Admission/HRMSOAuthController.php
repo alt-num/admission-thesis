@@ -72,6 +72,9 @@ class HRMSOAuthController extends Controller
 
             $token = $tokenResponse->json('access_token');
 
+            // Store token in session for logout revocation
+            session(['hrms_access_token' => $token]);
+
             // Fetch user info
             $userInfoResponse = Http::withToken($token)->get(
                 config('services.oauth.provider_url') . '/oauth/userinfo'

@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class LoginController extends Controller
@@ -118,6 +120,9 @@ class LoginController extends Controller
      */
     public function logout(Request $request)
     {
+        // Attempt to revoke HRMS token BEFORE clearing session
+        $this->revokeHRMSToken();
+
         // Determine which guard is active based on the referrer
         $referer = $request->headers->get('referer', '');
         $isAdmission = str_contains($referer, '/admission/');
@@ -141,6 +146,44 @@ class LoginController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/login');
+    }
+
+    /**
+     * Attempt to revoke HRMS access token on logout.
+     * Errors are logged but do not block logout.
+     */
+    private function revokeHRMSToken()
+    {
+        try {
+            // Read token from session
+            $token = session('hrms_access_token');
+
+            if (empty($token)) {
+                // No token to revoke, skip
+                return;
+            }
+
+            // Attempt to revoke token on HRMS
+            $response = Http::post(
+                config('services.oauth.provider_url') . '/oauth/revoke',
+                [
+                    'token' => $token,
+                    'client_id' => config('services.oauth.client_id'),
+                    'client_secret' => config('services.oauth.client_secret'),
+                ]
+            );
+
+            // Log the result for debugging
+            Log::info('HRMS token revocation', [
+                'status' => $response->status(),
+                'success' => $response->successful(),
+            ]);
+        } catch (\Exception $e) {
+            // Log but do not block logout - HRMS failure is not critical
+            Log::warning('HRMS token revocation failed', [
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }
 
