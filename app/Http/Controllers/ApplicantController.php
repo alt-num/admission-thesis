@@ -14,6 +14,7 @@ use App\Models\Campus;
 use App\Models\Course;
 use App\Models\Exam;
 use App\Models\ExamSchedule;
+use App\Services\EmailAuditService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -284,17 +285,31 @@ class ApplicantController extends Controller
         // Re-send email notification with new credentials
         try {
             $campusName = $campus->campus_name ?? 'N/A';
-            Mail::to($applicant->email)->send(
-                new ApplicantAccountCreatedMail(
-                    $applicant,
-                    $username,
-                    $newPassword,
-                    $campusName
-                )
+            $mailable = new ApplicantAccountCreatedMail(
+                $applicant,
+                $username,
+                $newPassword,
+                $campusName
+            );
+
+            Mail::to($applicant->email)->queue($mailable);
+
+            // Log the email send for audit
+            EmailAuditService::logQueued(
+                ApplicantAccountCreatedMail::class,
+                $applicant->email,
+                $mailable->envelope()->subject,
+                $applicant->app_ref_no
             );
         } catch (\Exception $e) {
-            // Log error but don't fail the reset
-            \Log::error('Failed to send reset credentials email: ' . $e->getMessage());
+            // Log the failure
+            EmailAuditService::logFailed(
+                ApplicantAccountCreatedMail::class,
+                $applicant->email,
+                'Reset Credentials',
+                $e->getMessage(),
+                $applicant->app_ref_no
+            );
             return back()->with('warning', 'Credentials reset successfully, but email notification failed to send.');
         }
 
