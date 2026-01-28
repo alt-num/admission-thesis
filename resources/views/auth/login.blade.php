@@ -1,8 +1,17 @@
 @extends('layouts.guest')
 
 @section('content')
-<div class="max-w-md w-full mx-auto">
-    <div class="bg-white rounded-xl shadow-xl p-8 space-y-6">
+<div class="min-h-screen bg-cover bg-center bg-no-repeat flex items-center justify-center" style="background-image: url('{{ asset('imgs/background.jpg') }}');">
+    <!-- Dark overlay for better text readability -->
+    <div class="absolute inset-0 bg-black/40"></div>
+    
+    <div class="flex flex-col items-center relative z-10">
+        {{-- Logo --}}
+        <div class="flex justify-center mb-6">
+            <img src="{{ asset('imgs/logo_front.png') }}" alt="ESSU Logo" class="h-40 w-auto max-w-2xl">
+        </div>
+
+    <div class="max-w-md w-full bg-white rounded-xl shadow-xl p-8 space-y-6">
         {{-- Header --}}
         <div class="text-center space-y-2">
             <h1 class="text-3xl font-bold text-gray-900">ESSU Admission System</h1>
@@ -105,5 +114,6 @@
             Admission staff can use their HRMS credentials to log in.
         </p>
     </div>
+        </div>
 </div>
 @endsection
