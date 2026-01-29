@@ -114,7 +114,7 @@ class HRMSOAuthController extends Controller
                 Session::invalidate();
                 Session::regenerateToken();
                 
-                return redirect('/login')->with('error', 'Your department is not authorized to access this system. Contact the administrator.');
+                return redirect('/login')->with('error', 'Your unit is not authorized to access this system. Contact the HR.');
             }
 
             // ==================== EMPLOYEE CREATION / FETCH ====================
