@@ -90,9 +90,10 @@ class HRMSOAuthController extends Controller
 
             // ==================== AUTHORIZATION CHECK ====================
             // Department must contain 'admission', 'admission office', 'admissions', or 'office of admission'
-            $department = strtolower(trim($userInfo['department'] ?? ''));
+            $department = strtolower(trim($userInfo['unit'] ?? ''));
 
             $allowedDepartments = [
+                'admission services office',
                 'admission',
                 'admission office',
                 'admissions',
@@ -132,7 +133,7 @@ class HRMSOAuthController extends Controller
 
             if (!$employee) {
                 // Create new employee
-                // Get Admission Office department (default to ID 1 if not found)
+                // Get Admission Office department
                 $admissionDept = Department::whereRaw(
                     'LOWER(department_name) LIKE ?',
                     ['%admission%']
